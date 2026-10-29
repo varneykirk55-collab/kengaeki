@@ -1,0 +1,33 @@
+[gd_resource type="Resource" script_class="AttackData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/combat/attack_data.gd" id="1_attack"]
+
+[resource]
+script = ExtResource("1_attack")
+id = &"enemy_thrust"
+display_name = "Ronin Thrust"
+animation = &"thrust"
+startup = 0.5
+active = 0.1
+recovery = 0.6
+cancel_point = 0.3
+dodge_cancel_startup = -1.0
+damage = 16.0
+guard_damage = 22.0
+stamina_cost = 0.0
+stagger_power = 1
+knockback = 0.8
+unblockable = false
+unparryable = false
+hyper_armor = false
+invulnerable = false
+reach = 2.8
+sweep_from = 10.0
+sweep_to = -10.0
+max_targets = 0
+lunge_distance = 1.5
+hitstop = 0.05
+camera_shake = 0.12
+is_finisher = false
+is_counter = false
+swing_sound = &"swing_light"

@@ -1,0 +1,33 @@
+[gd_resource type="Resource" script_class="AttackData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/combat/attack_data.gd" id="1_attack"]
+
+[resource]
+script = ExtResource("1_attack")
+id = &"counter_riposte"
+display_name = "Kaeshi-waza (parry counter)"
+animation = &"kesa"
+startup = 0.12
+active = 0.1
+recovery = 0.4
+cancel_point = 0.15
+dodge_cancel_startup = -1.0
+damage = 60.0
+guard_damage = 0.0
+stamina_cost = 0.0
+stagger_power = 3
+knockback = 1.4
+unblockable = true
+unparryable = true
+hyper_armor = true
+invulnerable = true
+reach = 3.0
+sweep_from = 40.0
+sweep_to = -40.0
+max_targets = 0
+lunge_distance = 2.2
+hitstop = 0.14
+camera_shake = 0.5
+is_finisher = false
+is_counter = true
+swing_sound = &"swing_heavy"

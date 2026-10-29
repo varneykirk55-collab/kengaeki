@@ -1,0 +1,33 @@
+[gd_resource type="Resource" script_class="AttackData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/combat/attack_data.gd" id="1_attack"]
+
+[resource]
+script = ExtResource("1_attack")
+id = &"light_heavy"
+display_name = "Rising Cut (light > heavy)"
+animation = &"rising"
+startup = 0.22
+active = 0.12
+recovery = 0.4
+cancel_point = 0.1
+dodge_cancel_startup = 0.1
+damage = 24.0
+guard_damage = 34.0
+stamina_cost = 16.0
+stagger_power = 2
+knockback = 0.8
+unblockable = false
+unparryable = false
+hyper_armor = true
+invulnerable = false
+reach = 2.5
+sweep_from = -50.0
+sweep_to = 50.0
+max_targets = 0
+lunge_distance = 0.9
+hitstop = 0.07
+camera_shake = 0.22
+is_finisher = false
+is_counter = false
+swing_sound = &"swing_heavy"

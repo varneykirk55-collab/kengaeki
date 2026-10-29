@@ -1,0 +1,33 @@
+[gd_resource type="Resource" script_class="AttackData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/combat/attack_data.gd" id="1_attack"]
+
+[resource]
+script = ExtResource("1_attack")
+id = &"heavy_light"
+display_name = "Piercing Thrust (heavy > light)"
+animation = &"thrust"
+startup = 0.12
+active = 0.09
+recovery = 0.32
+cancel_point = 0.05
+dodge_cancel_startup = 0.12
+damage = 18.0
+guard_damage = 18.0
+stamina_cost = 9.0
+stagger_power = 1
+knockback = 0.9
+unblockable = false
+unparryable = false
+hyper_armor = false
+invulnerable = false
+reach = 2.9
+sweep_from = 12.0
+sweep_to = -12.0
+max_targets = 0
+lunge_distance = 1.4
+hitstop = 0.05
+camera_shake = 0.14
+is_finisher = false
+is_counter = false
+swing_sound = &"swing_light"

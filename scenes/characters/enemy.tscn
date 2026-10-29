@@ -1,0 +1,52 @@
+[gd_scene load_steps=10 format=3]
+
+[ext_resource type="Script" path="res://scripts/enemy/enemy.gd" id="1_enemy"]
+[ext_resource type="Script" path="res://scripts/components/health_component.gd" id="2_health"]
+[ext_resource type="Script" path="res://scripts/components/stamina_component.gd" id="3_stamina"]
+[ext_resource type="Script" path="res://scripts/components/weapon_component.gd" id="4_weapon"]
+[ext_resource type="Script" path="res://scripts/combat/attack_runner.gd" id="5_runner"]
+[ext_resource type="Script" path="res://scripts/enemy/enemy_ai.gd" id="6_ai"]
+[ext_resource type="PackedScene" path="res://scenes/characters/ronin_visual_placeholder.tscn" id="7_visual"]
+
+[sub_resource type="CapsuleShape3D" id="Capsule_1"]
+radius = 0.38
+height = 1.8
+
+[node name="Enemy" type="CharacterBody3D"]
+collision_layer = 4
+collision_mask = 7
+floor_snap_length = 0.3
+script = ExtResource("1_enemy")
+faction = 1
+display_name = "Ronin"
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
+shape = SubResource("Capsule_1")
+
+[node name="Visual" parent="." instance=ExtResource("7_visual")]
+
+[node name="Health" type="Node" parent="."]
+script = ExtResource("2_health")
+max_health = 60.0
+
+[node name="Stamina" type="Node" parent="."]
+script = ExtResource("3_stamina")
+max_stamina = 60.0
+regen_rate = 15.0
+regen_delay = 1.2
+blocking_regen_multiplier = 1.0
+
+[node name="Weapon" type="Node" parent="."]
+script = ExtResource("4_weapon")
+
+[node name="AttackRunner" type="Node" parent="."]
+script = ExtResource("5_runner")
+
+[node name="AI" type="Node" parent="."]
+script = ExtResource("6_ai")
+
+[node name="NavigationAgent3D" type="NavigationAgent3D" parent="."]
+path_desired_distance = 0.6
+target_desired_distance = 0.4
+path_max_distance = 2.0

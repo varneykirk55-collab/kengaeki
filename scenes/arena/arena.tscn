@@ -1,0 +1,82 @@
+[gd_scene load_steps=7 format=3]
+
+[ext_resource type="Script" path="res://scripts/arena/arena.gd" id="1_arena"]
+[ext_resource type="Script" path="res://scripts/arena/courtyard_blockout.gd" id="2_blockout"]
+
+[sub_resource type="ProceduralSkyMaterial" id="Sky_mat"]
+sky_top_color = Color(0.36, 0.5, 0.7, 1)
+sky_horizon_color = Color(0.86, 0.74, 0.62, 1)
+ground_bottom_color = Color(0.2, 0.18, 0.16, 1)
+ground_horizon_color = Color(0.86, 0.74, 0.62, 1)
+sun_angle_max = 20.0
+
+[sub_resource type="Sky" id="Sky_1"]
+sky_material = SubResource("Sky_mat")
+
+[sub_resource type="Environment" id="Env_1"]
+background_mode = 2
+sky = SubResource("Sky_1")
+ambient_light_source = 3
+ambient_light_color = Color(0.75, 0.72, 0.68, 1)
+ambient_light_sky_contribution = 0.7
+ambient_light_energy = 0.8
+tonemap_mode = 2
+tonemap_exposure = 0.9
+fog_enabled = true
+fog_light_color = Color(0.8, 0.72, 0.64, 1)
+fog_density = 0.004
+adjustment_enabled = true
+adjustment_saturation = 0.92
+
+[sub_resource type="NavigationMesh" id="NavMesh_1"]
+
+[node name="Arena" type="Node3D"]
+script = ExtResource("1_arena")
+
+[node name="Blockout" type="Node3D" parent="."]
+script = ExtResource("2_blockout")
+
+[node name="Visual" type="Node3D" parent="."]
+
+[node name="NavigationRegion3D" type="NavigationRegion3D" parent="."]
+navigation_mesh = SubResource("NavMesh_1")
+
+[node name="PlayerStart" type="Marker3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.05, 8)
+
+[node name="SpawnPoints" type="Node3D" parent="."]
+
+[node name="North" type="Marker3D" parent="SpawnPoints"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.1, -17)
+
+[node name="South" type="Marker3D" parent="SpawnPoints"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.1, 17)
+
+[node name="East" type="Marker3D" parent="SpawnPoints"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 17, 0.1, 0)
+
+[node name="West" type="Marker3D" parent="SpawnPoints"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -17, 0.1, 0)
+
+[node name="NorthEast" type="Marker3D" parent="SpawnPoints"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 13, 0.1, -13)
+
+[node name="NorthWest" type="Marker3D" parent="SpawnPoints"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -13, 0.1, -13)
+
+[node name="SouthEast" type="Marker3D" parent="SpawnPoints"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 13, 0.1, 13)
+
+[node name="SouthWest" type="Marker3D" parent="SpawnPoints"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -13, 0.1, 13)
+
+[node name="Sun" type="DirectionalLight3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 12, 0)
+rotation = Vector3(-0.85, 0.65, 0)
+light_color = Color(1, 0.9, 0.78, 1)
+light_energy = 1.0
+shadow_enabled = true
+directional_shadow_max_distance = 70.0
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Env_1")

@@ -1,0 +1,33 @@
+[gd_resource type="Resource" script_class="AttackData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/combat/attack_data.gd" id="1_attack"]
+
+[resource]
+script = ExtResource("1_attack")
+id = &"finisher_kesa"
+display_name = "Kesa-giri (light, light, heavy finisher)"
+animation = &"kesa"
+startup = 0.26
+active = 0.12
+recovery = 0.5
+cancel_point = 0.2
+dodge_cancel_startup = 0.1
+damage = 42.0
+guard_damage = 60.0
+stamina_cost = 18.0
+stagger_power = 3
+knockback = 1.6
+unblockable = false
+unparryable = false
+hyper_armor = true
+invulnerable = false
+reach = 2.6
+sweep_from = 50.0
+sweep_to = -50.0
+max_targets = 0
+lunge_distance = 1.1
+hitstop = 0.1
+camera_shake = 0.4
+is_finisher = true
+is_counter = false
+swing_sound = &"swing_heavy"

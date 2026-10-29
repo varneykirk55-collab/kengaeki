@@ -1,0 +1,33 @@
+[gd_resource type="Resource" script_class="AttackData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/combat/attack_data.gd" id="1_attack"]
+
+[resource]
+script = ExtResource("1_attack")
+id = &"enemy_heavy"
+display_name = "Ronin Overhead (hyper armor)"
+animation = &"overhead"
+startup = 0.75
+active = 0.14
+recovery = 0.7
+cancel_point = 0.3
+dodge_cancel_startup = -1.0
+damage = 24.0
+guard_damage = 40.0
+stamina_cost = 0.0
+stagger_power = 2
+knockback = 1.0
+unblockable = false
+unparryable = false
+hyper_armor = true
+invulnerable = false
+reach = 2.5
+sweep_from = 20.0
+sweep_to = -20.0
+max_targets = 0
+lunge_distance = 1.2
+hitstop = 0.06
+camera_shake = 0.2
+is_finisher = false
+is_counter = false
+swing_sound = &"swing_heavy"

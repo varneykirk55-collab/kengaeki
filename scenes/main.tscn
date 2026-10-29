@@ -1,0 +1,59 @@
+[gd_scene load_steps=11 format=3]
+
+[ext_resource type="Script" path="res://scripts/main.gd" id="1_main"]
+[ext_resource type="PackedScene" path="res://scenes/arena/arena.tscn" id="2_arena"]
+[ext_resource type="PackedScene" path="res://scenes/characters/player.tscn" id="3_player"]
+[ext_resource type="PackedScene" path="res://scenes/camera/camera_rig.tscn" id="4_camera"]
+[ext_resource type="Script" path="res://scripts/encounter/encounter_manager.gd" id="5_encounter"]
+[ext_resource type="Script" path="res://scripts/encounter/spawn_manager.gd" id="6_spawner"]
+[ext_resource type="Script" path="res://scripts/ui/hud.gd" id="7_hud"]
+[ext_resource type="Script" path="res://scripts/ui/encounter_menu.gd" id="8_menu"]
+[ext_resource type="Script" path="res://scripts/ui/death_screen.gd" id="9_death"]
+
+[node name="Main" type="Node3D"]
+script = ExtResource("1_main")
+
+[node name="Arena" parent="." instance=ExtResource("2_arena")]
+
+[node name="Player" parent="." instance=ExtResource("3_player")]
+
+[node name="CameraRig" parent="." instance=ExtResource("4_camera")]
+
+[node name="Enemies" type="Node3D" parent="."]
+
+[node name="EncounterManager" type="Node" parent="."]
+script = ExtResource("5_encounter")
+
+[node name="SpawnManager" type="Node" parent="EncounterManager"]
+script = ExtResource("6_spawner")
+
+[node name="UI" type="CanvasLayer" parent="."]
+process_mode = 3
+
+[node name="HUD" type="Control" parent="UI"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("7_hud")
+
+[node name="EncounterMenu" type="Control" parent="UI"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("8_menu")
+
+[node name="DeathScreen" type="Control" parent="UI"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("9_death")

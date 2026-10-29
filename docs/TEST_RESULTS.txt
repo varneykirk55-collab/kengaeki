@@ -1,0 +1,102 @@
+==== KENGEKI gameplay tests: 101 passed, 0 failed ====
+  PASS  audio: all 17 SFX categories have placeholder sounds (missing: [])
+  PASS  audio: background music track loaded
+  PASS  movement: W moves camera-forward (4.28 m)
+  PASS  movement: smooth deceleration to a stop
+  PASS  movement: direction follows camera yaw (dx -2.45)
+  PASS  movement: character turns to face travel direction
+  PASS  sprint: faster than walking (6.55 m in 1 s)
+  PASS  sprint: drains stamina (86.0)
+  PASS  stamina: regenerates after delay
+  PASS  camera: mouse rotates yaw
+  PASS  camera: adjustable distance (4.2 -> 4.6)
+  PASS  camera: collision pulls camera in front of wall (hit 0.74 of 4.55)
+  PASS  light attack performed ([&"light_1"])
+  PASS  light attack: exactly one hit of 14 damage (hp 46.0)
+  PASS  light attack: no repeated damage from one swing
+  PASS  three-hit light combo chains ([&"light_1", &"light_2", &"light_3"])
+  PASS  three-hit combo: all three hits land (hp 946.0)
+  PASS  input buffer: early press is queued into the next combo hit ([&"light_1", &"light_2"])
+  PASS  light > heavy combo ([&"light_1", &"light_heavy"])
+  PASS  heavy > light combo ([&"heavy_1", &"heavy_light"])
+  PASS  light-light-heavy finisher ([&"light_1", &"light_2", &"finisher_kesa"])
+  PASS  kesa finisher deals its damage (total 70.0)
+  PASS  one light swing damages multiple enemies (3/3)
+  PASS  Crescent Wheel finisher strikes all around (behind hp 974)
+  PASS  block: enemy strike is blocked ([1])
+  PASS  block: only chip damage taken (hp 98.8)
+  PASS  block: costs stamina/guard
+  PASS  timed parry succeeds ([2])
+  PASS  parry: no damage taken
+  PASS  parry: attacker staggered and vulnerable
+  PASS  parry: counter window opened
+  PASS  counterattack performed after parry ([&"counter_riposte"])
+  PASS  counterattack deals heavy damage (90)
+  PASS  parry: mashing block does not reopen the window immediately
+  PASS  enemy blocks player attacks ([1, 3])
+  PASS  heavy attacks break the enemy guard
+  PASS  guard-broken enemy is vulnerable
+  PASS  heavy on a vulnerable enemy triggers the finishing strike ([&"finishing_strike"])
+  PASS  finishing strike lands (hp 348)
+  PASS  dodge: brief invulnerability active
+  PASS  dodge: strike during i-frames deals no damage
+  PASS  dodge: invulnerability ends
+  PASS  dodge: moves in input direction (x 4.39)
+  PASS  dodge: refused without enough stamina
+  PASS  enemy strike damages unguarded player (hp 88)
+  PASS  player hit reaction (hitstun)
+  PASS  player recovers from hitstun
+  PASS  enemy block reduces damage (hp 98.6)
+  PASS  enemy dies at zero health
+  PASS  enemy count updates on death
+  PASS  defeated enemy is cleaned up
+  PASS  lock-on acquires a target
+  PASS  lock-on target switching
+  PASS  camera turns toward the locked target
+  PASS  lock-on hops to the next enemy when the target dies
+  PASS  lock-on toggles off
+  PASS  placeholder attack animation visibly moves the blade (8.79 m tip travel)
+  PASS  blade trail present on katana
+  PASS  heavy attack lands
+  PASS  hit-stop applied on impact
+  PASS  camera shake on significant impact
+  PASS  enemy spawns away from the player (18.4 m)
+  PASS  AI approaches and engages (["approach", "circle", "engage", "attack"])
+  PASS  AI attacks the player in a duel
+  PASS  spawn: first enemy enters immediately, rest queued
+  PASS  spawn: exact count spawned (5)
+  PASS  spawn: enemies enter sequentially at the chosen interval
+  PASS  spawn: not on top of the player
+  PASS  group: never more than 2 simultaneous attackers (peak 2)
+  PASS  group: attacker slots are used
+  PASS  group: every enemy gets an attack turn within 30 s (6/6) - no permanent waiting
+  PASS  group: several different enemies actually strike (6)
+  PASS  group: enemies avoid stacking on each other (min spacing 1.13 m)
+  PASS  group: enemies surround the player from different directions (4 quadrants)
+  PASS  group: attacker limit is configurable (limit 3, peak 3)
+  PASS  multi-enemy fight: player defeats all 3 enemies (3 kills in 9.5 s)
+  PASS  spawn: 2 of 5 entered after 1.5 s at 1 s interval (2)
+  PASS  clear: removes enemies and cancels queued spawns
+  PASS  clear: nothing spawns afterwards
+  PASS  repeated spawn / clear cycles stay consistent
+  PASS  spawn: supports 10 enemies (10)
+  PASS  spawn: safety cap respected under spammed requests (16 alive)
+  PASS  menu: opens and pauses
+  PASS  menu: max attackers control applies
+  PASS  menu: spawn closes the menu and resumes
+  PASS  menu: spawns the exact selected count (4)
+  PASS  menu: restore health
+  PASS  menu: clear enemies
+  PASS  menu: reset encounter
+  PASS  menu: resume
+  PASS  player death state
+  PASS  death screen shown
+  PASS  restart: player revived at full health
+  PASS  restart: encounter restarts with the same enemy count
+  PASS  return to arena: revived, enemies cleared, menu open
+  PASS  import pipeline: synthetic rigged model packs
+  PASS  import pipeline: katana attached to the hand bone
+  PASS  import pipeline: attack plays the mapped clip (SlashRL)
+  PASS  import pipeline: hit window opened by the animation event, not data timing
+  PASS  import pipeline: animation-timed strike resolves through combat
+  PASS  import pipeline: attack_end event finishes the attack

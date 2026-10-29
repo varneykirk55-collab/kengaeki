@@ -1,0 +1,33 @@
+[gd_resource type="Resource" script_class="AttackData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/combat/attack_data.gd" id="1_attack"]
+
+[resource]
+script = ExtResource("1_attack")
+id = &"enemy_slash"
+display_name = "Ronin Cut"
+animation = &"slash_rl"
+startup = 0.42
+active = 0.12
+recovery = 0.5
+cancel_point = 0.2
+dodge_cancel_startup = -1.0
+damage = 12.0
+guard_damage = 18.0
+stamina_cost = 0.0
+stagger_power = 1
+knockback = 0.6
+unblockable = false
+unparryable = false
+hyper_armor = false
+invulnerable = false
+reach = 2.3
+sweep_from = 70.0
+sweep_to = -70.0
+max_targets = 0
+lunge_distance = 0.8
+hitstop = 0.04
+camera_shake = 0.1
+is_finisher = false
+is_counter = false
+swing_sound = &"swing_light"

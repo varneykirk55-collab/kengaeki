@@ -1,0 +1,33 @@
+[gd_resource type="Resource" script_class="AttackData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/combat/attack_data.gd" id="1_attack"]
+
+[resource]
+script = ExtResource("1_attack")
+id = &"finishing_strike"
+display_name = "Todome (finishing strike)"
+animation = &"overhead"
+startup = 0.18
+active = 0.1
+recovery = 0.55
+cancel_point = 0.25
+dodge_cancel_startup = -1.0
+damage = 90.0
+guard_damage = 0.0
+stamina_cost = 0.0
+stagger_power = 3
+knockback = 1.0
+unblockable = true
+unparryable = true
+hyper_armor = true
+invulnerable = true
+reach = 2.8
+sweep_from = 25.0
+sweep_to = -25.0
+max_targets = 1
+lunge_distance = 1.8
+hitstop = 0.16
+camera_shake = 0.55
+is_finisher = true
+is_counter = false
+swing_sound = &"swing_heavy"

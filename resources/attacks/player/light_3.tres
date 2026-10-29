@@ -1,0 +1,33 @@
+[gd_resource type="Resource" script_class="AttackData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/combat/attack_data.gd" id="1_attack"]
+
+[resource]
+script = ExtResource("1_attack")
+id = &"light_3"
+display_name = "Crescent Wheel (combo finisher)"
+animation = &"spin"
+startup = 0.2
+active = 0.24
+recovery = 0.5
+cancel_point = 0.25
+dodge_cancel_startup = 0.08
+damage = 26.0
+guard_damage = 30.0
+stamina_cost = 14.0
+stagger_power = 2
+knockback = 1.2
+unblockable = false
+unparryable = false
+hyper_armor = true
+invulnerable = false
+reach = 2.7
+sweep_from = 180.0
+sweep_to = -180.0
+max_targets = 0
+lunge_distance = 0.6
+hitstop = 0.08
+camera_shake = 0.3
+is_finisher = true
+is_counter = false
+swing_sound = &"swing_heavy"
