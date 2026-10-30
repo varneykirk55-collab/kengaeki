@@ -1,0 +1,127 @@
+[gd_scene load_steps=21 format=3]
+
+[ext_resource type="Script" path="res://environment/courtyard/scripts/courtyard_prop.gd" id="1"]
+[ext_resource type="Material" path="res://environment/courtyard/materials/gb_plaster.tres" id="2"]
+[ext_resource type="Material" path="res://environment/courtyard/materials/gb_stone.tres" id="3"]
+[ext_resource type="Material" path="res://environment/courtyard/materials/gb_lacquer.tres" id="4"]
+[ext_resource type="Material" path="res://environment/courtyard/materials/gb_wood.tres" id="5"]
+[ext_resource type="Material" path="res://environment/courtyard/materials/gb_tile.tres" id="6"]
+
+[sub_resource type="BoxMesh" id="BoxMesh_1"]
+size = Vector3(2, 5.4, 1.2)
+
+[sub_resource type="BoxMesh" id="BoxMesh_2"]
+size = Vector3(2, 1.2, 1.3)
+
+[sub_resource type="BoxMesh" id="BoxMesh_3"]
+size = Vector3(0.45, 5.2, 0.45)
+
+[sub_resource type="BoxMesh" id="BoxMesh_4"]
+size = Vector3(2, 5.4, 1.2)
+
+[sub_resource type="BoxMesh" id="BoxMesh_5"]
+size = Vector3(2, 1.2, 1.3)
+
+[sub_resource type="BoxMesh" id="BoxMesh_6"]
+size = Vector3(0.45, 5.2, 0.45)
+
+[sub_resource type="BoxMesh" id="BoxMesh_7"]
+size = Vector3(5.4, 0.45, 0.5)
+
+[sub_resource type="BoxMesh" id="BoxMesh_8"]
+size = Vector3(3.9, 4.2, 0.25)
+
+[sub_resource type="BoxMesh" id="BoxMesh_9"]
+size = Vector3(8.6, 0.6, 2.8)
+
+[sub_resource type="BoxMesh" id="BoxMesh_10"]
+size = Vector3(6, 0.9, 1.4)
+
+[sub_resource type="BoxMesh" id="BoxMesh_11"]
+size = Vector3(6.6, 0.2, 0.3)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_12"]
+size = Vector3(2, 5.4, 1.2)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_13"]
+size = Vector3(2, 5.4, 1.2)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_14"]
+size = Vector3(4, 5.4, 1.2)
+
+[node name="gate_main" type="Node3D"]
+script = ExtResource("1")
+model_path = "res://environment/courtyard/assets/Architecture/main_gate/main_gate.glb"
+
+[node name="Graybox" type="Node3D" parent="."]
+
+[node name="Collision" type="StaticBody3D" parent="."]
+collision_layer = 1
+collision_mask = 0
+
+[node name="SideWallL" type="MeshInstance3D" parent="Graybox"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3, 2.7, 0)
+mesh = SubResource("BoxMesh_1")
+material_override = ExtResource("2")
+
+[node name="SideBaseL" type="MeshInstance3D" parent="Graybox"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3, 0.6, 0)
+mesh = SubResource("BoxMesh_2")
+material_override = ExtResource("3")
+
+[node name="PostL" type="MeshInstance3D" parent="Graybox"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.15, 2.6, 0.2)
+mesh = SubResource("BoxMesh_3")
+material_override = ExtResource("4")
+
+[node name="SideWallR" type="MeshInstance3D" parent="Graybox"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3, 2.7, 0)
+mesh = SubResource("BoxMesh_4")
+material_override = ExtResource("2")
+
+[node name="SideBaseR" type="MeshInstance3D" parent="Graybox"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3, 0.6, 0)
+mesh = SubResource("BoxMesh_5")
+material_override = ExtResource("3")
+
+[node name="PostR" type="MeshInstance3D" parent="Graybox"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.15, 2.6, 0.2)
+mesh = SubResource("BoxMesh_6")
+material_override = ExtResource("4")
+
+[node name="Lintel" type="MeshInstance3D" parent="Graybox"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 4.9, 0.2)
+mesh = SubResource("BoxMesh_7")
+material_override = ExtResource("4")
+
+[node name="Doors" type="MeshInstance3D" parent="Graybox"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.1, -0.1)
+mesh = SubResource("BoxMesh_8")
+material_override = ExtResource("5")
+
+[node name="RoofBase" type="MeshInstance3D" parent="Graybox"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 5.6, 0)
+mesh = SubResource("BoxMesh_9")
+material_override = ExtResource("6")
+
+[node name="RoofRidge" type="MeshInstance3D" parent="Graybox"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 6.6, 0)
+mesh = SubResource("BoxMesh_10")
+material_override = ExtResource("6")
+
+[node name="RoofRidgeCap" type="MeshInstance3D" parent="Graybox"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 7.15, 0)
+mesh = SubResource("BoxMesh_11")
+material_override = ExtResource("6")
+
+[node name="SideL" type="CollisionShape3D" parent="Collision"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3, 2.7, 0)
+shape = SubResource("BoxShape3D_12")
+
+[node name="SideR" type="CollisionShape3D" parent="Collision"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3, 2.7, 0)
+shape = SubResource("BoxShape3D_13")
+
+[node name="Doors" type="CollisionShape3D" parent="Collision"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.7, 0)
+shape = SubResource("BoxShape3D_14")

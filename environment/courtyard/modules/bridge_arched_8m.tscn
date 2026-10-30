@@ -1,0 +1,214 @@
+[gd_scene load_steps=30 format=3]
+
+[ext_resource type="Script" path="res://environment/courtyard/scripts/courtyard_prop.gd" id="1"]
+[ext_resource type="Material" path="res://environment/courtyard/materials/gb_wood.tres" id="2"]
+[ext_resource type="Material" path="res://environment/courtyard/materials/gb_lacquer.tres" id="3"]
+
+[sub_resource type="BoxMesh" id="BoxMesh_1"]
+size = Vector3(3.0594, 0.2, 2.2)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_2"]
+size = Vector3(3.0594, 0.2, 2.2)
+
+[sub_resource type="BoxMesh" id="BoxMesh_3"]
+size = Vector3(3.0594, 0.12, 0.12)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_4"]
+size = Vector3(3.0594, 1, 0.12)
+
+[sub_resource type="BoxMesh" id="BoxMesh_5"]
+size = Vector3(3.0594, 0.12, 0.12)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_6"]
+size = Vector3(3.0594, 1, 0.12)
+
+[sub_resource type="BoxMesh" id="BoxMesh_7"]
+size = Vector3(3.0594, 0.2, 2.2)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_8"]
+size = Vector3(3.0594, 0.2, 2.2)
+
+[sub_resource type="BoxMesh" id="BoxMesh_9"]
+size = Vector3(3.0594, 0.12, 0.12)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_10"]
+size = Vector3(3.0594, 1, 0.12)
+
+[sub_resource type="BoxMesh" id="BoxMesh_11"]
+size = Vector3(3.0594, 0.12, 0.12)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_12"]
+size = Vector3(3.0594, 1, 0.12)
+
+[sub_resource type="BoxMesh" id="BoxMesh_13"]
+size = Vector3(2, 0.2, 2.2)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_14"]
+size = Vector3(2, 0.2, 2.2)
+
+[sub_resource type="BoxMesh" id="BoxMesh_15"]
+size = Vector3(2, 0.12, 0.12)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_16"]
+size = Vector3(2, 1, 0.12)
+
+[sub_resource type="BoxMesh" id="BoxMesh_17"]
+size = Vector3(0.14, 1.48, 0.14)
+
+[sub_resource type="BoxMesh" id="BoxMesh_18"]
+size = Vector3(0.14, 2, 0.14)
+
+[sub_resource type="BoxMesh" id="BoxMesh_19"]
+size = Vector3(0.14, 2, 0.14)
+
+[sub_resource type="BoxMesh" id="BoxMesh_20"]
+size = Vector3(0.14, 1.48, 0.14)
+
+[sub_resource type="BoxMesh" id="BoxMesh_21"]
+size = Vector3(2, 0.12, 0.12)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_22"]
+size = Vector3(2, 1, 0.12)
+
+[sub_resource type="BoxMesh" id="BoxMesh_23"]
+size = Vector3(0.14, 1.48, 0.14)
+
+[sub_resource type="BoxMesh" id="BoxMesh_24"]
+size = Vector3(0.14, 2, 0.14)
+
+[sub_resource type="BoxMesh" id="BoxMesh_25"]
+size = Vector3(0.14, 2, 0.14)
+
+[sub_resource type="BoxMesh" id="BoxMesh_26"]
+size = Vector3(0.14, 1.48, 0.14)
+
+[node name="bridge_arched_8m" type="Node3D"]
+script = ExtResource("1")
+model_path = "res://environment/courtyard/assets/Architecture/arched_bridge/arched_bridge.glb"
+
+[node name="Graybox" type="Node3D" parent="."]
+
+[node name="Collision" type="StaticBody3D" parent="."]
+collision_layer = 1
+collision_mask = 0
+
+[node name="RampUp" type="MeshInstance3D" parent="Graybox"]
+transform = Transform3D(0.9806, 0.1961, 0, -0.1961, 0.9806, 0, 0, 0, 1, -2.4804, 0.2019, 0)
+mesh = SubResource("BoxMesh_1")
+material_override = ExtResource("2")
+
+[node name="RampUp" type="CollisionShape3D" parent="Collision"]
+transform = Transform3D(0.9806, 0.1961, 0, -0.1961, 0.9806, 0, 0, 0, 1, -2.4804, 0.2019, 0)
+shape = SubResource("BoxShape3D_2")
+
+[node name="RailUpL" type="MeshInstance3D" parent="Graybox"]
+transform = Transform3D(0.9806, 0.1961, 0, -0.1961, 0.9806, 0, 0, 0, 1, -2.5, 0.8, -1.16)
+mesh = SubResource("BoxMesh_3")
+material_override = ExtResource("3")
+
+[node name="RailUpL" type="CollisionShape3D" parent="Collision"]
+transform = Transform3D(0.9806, 0.1961, 0, -0.1961, 0.9806, 0, 0, 0, 1, -2.5, 0.8, -1.16)
+shape = SubResource("BoxShape3D_4")
+
+[node name="RailUpR" type="MeshInstance3D" parent="Graybox"]
+transform = Transform3D(0.9806, 0.1961, 0, -0.1961, 0.9806, 0, 0, 0, 1, -2.5, 0.8, 1.16)
+mesh = SubResource("BoxMesh_5")
+material_override = ExtResource("3")
+
+[node name="RailUpR" type="CollisionShape3D" parent="Collision"]
+transform = Transform3D(0.9806, 0.1961, 0, -0.1961, 0.9806, 0, 0, 0, 1, -2.5, 0.8, 1.16)
+shape = SubResource("BoxShape3D_6")
+
+[node name="RampDown" type="MeshInstance3D" parent="Graybox"]
+transform = Transform3D(0.9806, -0.1961, 0, 0.1961, 0.9806, 0, 0, 0, 1, 2.4804, 0.2019, 0)
+mesh = SubResource("BoxMesh_7")
+material_override = ExtResource("2")
+
+[node name="RampDown" type="CollisionShape3D" parent="Collision"]
+transform = Transform3D(0.9806, -0.1961, 0, 0.1961, 0.9806, 0, 0, 0, 1, 2.4804, 0.2019, 0)
+shape = SubResource("BoxShape3D_8")
+
+[node name="RailDownL" type="MeshInstance3D" parent="Graybox"]
+transform = Transform3D(0.9806, -0.1961, 0, 0.1961, 0.9806, 0, 0, 0, 1, 2.5, 0.8, -1.16)
+mesh = SubResource("BoxMesh_9")
+material_override = ExtResource("3")
+
+[node name="RailDownL" type="CollisionShape3D" parent="Collision"]
+transform = Transform3D(0.9806, -0.1961, 0, 0.1961, 0.9806, 0, 0, 0, 1, 2.5, 0.8, -1.16)
+shape = SubResource("BoxShape3D_10")
+
+[node name="RailDownR" type="MeshInstance3D" parent="Graybox"]
+transform = Transform3D(0.9806, -0.1961, 0, 0.1961, 0.9806, 0, 0, 0, 1, 2.5, 0.8, 1.16)
+mesh = SubResource("BoxMesh_11")
+material_override = ExtResource("3")
+
+[node name="RailDownR" type="CollisionShape3D" parent="Collision"]
+transform = Transform3D(0.9806, -0.1961, 0, 0.1961, 0.9806, 0, 0, 0, 1, 2.5, 0.8, 1.16)
+shape = SubResource("BoxShape3D_12")
+
+[node name="Crown" type="MeshInstance3D" parent="Graybox"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, 0)
+mesh = SubResource("BoxMesh_13")
+material_override = ExtResource("2")
+
+[node name="Crown" type="CollisionShape3D" parent="Collision"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, 0)
+shape = SubResource("BoxShape3D_14")
+
+[node name="CrownRailL" type="MeshInstance3D" parent="Graybox"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.1, -1.16)
+mesh = SubResource("BoxMesh_15")
+material_override = ExtResource("3")
+
+[node name="CrownRailL" type="CollisionShape3D" parent="Collision"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.1, -1.16)
+shape = SubResource("BoxShape3D_16")
+
+[node name="PostL-36" type="MeshInstance3D" parent="Graybox"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.6, 0.34, -1.16)
+mesh = SubResource("BoxMesh_17")
+material_override = ExtResource("3")
+
+[node name="PostL-10" type="MeshInstance3D" parent="Graybox"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1, 0.6, -1.16)
+mesh = SubResource("BoxMesh_18")
+material_override = ExtResource("3")
+
+[node name="PostL10" type="MeshInstance3D" parent="Graybox"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 0.6, -1.16)
+mesh = SubResource("BoxMesh_19")
+material_override = ExtResource("3")
+
+[node name="PostL36" type="MeshInstance3D" parent="Graybox"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.6, 0.34, -1.16)
+mesh = SubResource("BoxMesh_20")
+material_override = ExtResource("3")
+
+[node name="CrownRailR" type="MeshInstance3D" parent="Graybox"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.1, 1.16)
+mesh = SubResource("BoxMesh_21")
+material_override = ExtResource("3")
+
+[node name="CrownRailR" type="CollisionShape3D" parent="Collision"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.1, 1.16)
+shape = SubResource("BoxShape3D_22")
+
+[node name="PostR-36" type="MeshInstance3D" parent="Graybox"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.6, 0.34, 1.16)
+mesh = SubResource("BoxMesh_23")
+material_override = ExtResource("3")
+
+[node name="PostR-10" type="MeshInstance3D" parent="Graybox"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1, 0.6, 1.16)
+mesh = SubResource("BoxMesh_24")
+material_override = ExtResource("3")
+
+[node name="PostR10" type="MeshInstance3D" parent="Graybox"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 0.6, 1.16)
+mesh = SubResource("BoxMesh_25")
+material_override = ExtResource("3")
+
+[node name="PostR36" type="MeshInstance3D" parent="Graybox"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.6, 0.34, 1.16)
+mesh = SubResource("BoxMesh_26")
+material_override = ExtResource("3")
