@@ -86,6 +86,19 @@ func _run(arena: Node) -> void:
 	quit(0 if fails == 0 else 1)
 
 
+func _model_aabb(n: Node) -> AABB:
+	var out := AABB()
+	var first := true
+	for c in _all(n):
+		if c is MeshInstance3D:
+			var mi := c as MeshInstance3D
+			var gt := (n as Node3D).global_transform.affine_inverse() * mi.global_transform
+			var ab := gt * mi.get_aabb()
+			out = ab if first else out.merge(ab)
+			first = false
+	return out
+
+
 func _all(n: Node) -> Array:
 	var out := [n]
 	for c in n.get_children():
@@ -122,7 +135,64 @@ func _blueprint_checks(arena: Node, map: RID, space: PhysicsDirectSpaceState3D, 
 	for v in arena.get_node(^"NavigationRegion3D").navigation_mesh.get_vertices():
 		if v.y > 2.0:
 			high += 1
-	print("  INFO  navmesh vertices above y=2 m (rooftop/wall-top islands): %d" % high)
+			if high <= 20:
+				print("  INFO  high navmesh vertex %s" % v)
+	check(high == 0, "no navmesh on roofs or wall tops (vertices above y=2 m: %d)" % high)
+	for item in [["main hall roof", Vector3(0, 9, -39)], ["barracks roof", Vector3(-36, 6, 0)], ["kura roof", Vector3(-31, 7, -36)],
+			["north wall top", Vector3(0, 5, -46)], ["east wall top", Vector3(40, 5, 0)], ["gate roof", Vector3(0, 10, 34)]]:
+		var cp := NavigationServer3D.map_get_closest_point(map, item[1])
+		check(cp.y < 2.0, "%s not walkable (closest navmesh point %s)" % [item[0], cp])
+	# Arch bridge: the route between its two ends goes over the deck (navmesh above ~1.1 m).
+	var an := NavigationServer3D.map_get_closest_point(map, Vector3(31, 0, -7.5))
+	var asn := NavigationServer3D.map_get_closest_point(map, Vector3(31, 0, 7.5))
+	var arch := NavigationServer3D.map_get_path(map, an, asn, true)
+	var top := -INF
+	var length := 0.0
+	for i in arch.size():
+		top = maxf(top, arch[i].y)
+		if i > 0:
+			length += arch[i].distance_to(arch[i - 1])
+	check(arch.size() > 0 and top > 1.1 and length < 18.0, "arch bridge crossable end to end over the deck (path max y %.2f, length %.1f m)" % [top, length])
+	# Arch rails: top about 1.0 m above the walking surface at each point (addendum).
+	for z in [0.0, -3.0, 3.0, -5.5, 5.5]:
+		for x in [29.725, 32.275]:
+			var rail := space.intersect_ray(PhysicsRayQueryParameters3D.create(Vector3(x, 4, z), Vector3(x, -1, z), 1))
+			var deck := space.intersect_ray(PhysicsRayQueryParameters3D.create(Vector3(31, 4, z), Vector3(31, -1, z), 1))
+			var ok := not rail.is_empty() and not deck.is_empty()
+			var dh: float = (rail.position.y - deck.position.y) if ok else -1.0
+			check(ok and dh > 0.85 and dh < 1.15, "arch rail x=%.2f z=%.1f top %.2f m above deck surface" % [x, z, dh])
+	# Gate closed (blocking); keep has no collision.
+	var gate := space.intersect_ray(PhysicsRayQueryParameters3D.create(Vector3(0, 1, 26), Vector3(0, 1, 42), 1))
+	check(not gate.is_empty() and absf(gate.position.z - 30.0) < 0.5, "main gate closed: blocking collider at z %s" % (gate.position.z if not gate.is_empty() else "none"))
+	var kq := PhysicsShapeQueryParameters3D.new()
+	var kb := BoxShape3D.new()
+	kb.size = Vector3(30, 28, 22)
+	kq.shape = kb
+	kq.collision_mask = 0xFFFFFFFF
+	var keep := arena.find_child("KEEP", true, false) as Node3D
+	if keep:
+		kq.transform = Transform3D(Basis(), keep.global_position + Vector3(0, 14.5, 0))
+		check(space.intersect_shape(kq, 4).is_empty(), "castle keep is backdrop only (no colliders in its volume)")
+	else:
+		check(false, "castle keep instance found")
+	# Sun: late afternoon, ~35 deg up, from the south-west.
+	var sun := arena.get_node(^"Sun") as DirectionalLight3D
+	var d := -sun.global_basis.z
+	var elev := rad_to_deg(asin(-d.y))
+	check(absf(elev - 35.0) < 1.0 and d.x > 0.5 and d.z < -0.5, "sun ~35 deg elevation from the SW (light dir %s, elevation %.1f)" % [d, elev])
+	# Delivered GLBs: every instance of a prop whose model file exists shows the model (and only then).
+	var lanterns := 0
+	var with_model := 0
+	for n in _all(arena):
+		if n is CourtyardProp and String(n.scene_file_path).ends_with("stone_lantern_toro_2m.tscn"):
+			lanterns += 1
+			if n.has_model:
+				with_model += 1
+				var m := n.get_node(^"Model") as Node3D
+				var ab := _model_aabb(m)
+				check(absf(ab.size.y - 2.0) < 0.1 and absf(ab.position.y) < 0.05 and ab.size.x < 1.2 and ab.size.z < 1.2,
+					"%s: lantern model ~2 m, base at origin (aabb %s)" % [n.name, ab])
+	check(lanterns == 10 and with_model == lanterns, "all %d lanterns use the real GLB (%d with model)" % [lanterns, with_model])
 	# Routes that must exist.
 	for pair in [["pond north -> south", Vector3(31, 0, -9), Vector3(31, 0, 9)],
 			["gate forecourt -> hall forecourt", Vector3(0, 0, 25), Vector3(0, 0, -25)],

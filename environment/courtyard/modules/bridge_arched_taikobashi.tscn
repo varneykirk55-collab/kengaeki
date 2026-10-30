@@ -1,4 +1,4 @@
-[gd_scene load_steps=8 format=3]
+[gd_scene load_steps=12 format=3]
 
 [ext_resource type="Script" path="res://environment/courtyard/scripts/courtyard_prop.gd" id="1"]
 [ext_resource type="Material" path="res://environment/courtyard/materials/gb_lacquer.tres" id="2"]
@@ -13,10 +13,22 @@ size = Vector3(4.61, 0.3, 2.4)
 size = Vector3(4, 0.3, 2.4)
 
 [sub_resource type="BoxMesh" id="BoxMesh_4"]
-size = Vector3(8, 0.12, 0.12)
+size = Vector3(4, 0.12, 0.12)
 
 [sub_resource type="BoxMesh" id="BoxMesh_5"]
-size = Vector3(8, 0.12, 0.12)
+size = Vector3(4.61, 0.12, 0.12)
+
+[sub_resource type="BoxMesh" id="BoxMesh_6"]
+size = Vector3(4.61, 0.12, 0.12)
+
+[sub_resource type="BoxMesh" id="BoxMesh_7"]
+size = Vector3(4, 0.12, 0.12)
+
+[sub_resource type="BoxMesh" id="BoxMesh_8"]
+size = Vector3(4.61, 0.12, 0.12)
+
+[sub_resource type="BoxMesh" id="BoxMesh_9"]
+size = Vector3(4.61, 0.12, 0.12)
 
 [node name="bridge_arched_taikobashi" type="Node3D"]
 script = ExtResource("1")
@@ -25,12 +37,12 @@ model_path = "res://environment/courtyard/assets/Bridges/bridge_arched_taikobash
 [node name="Graybox" type="Node3D" parent="."]
 
 [node name="RampA" type="MeshInstance3D" parent="Graybox"]
-transform = Transform3D(0.9762, 0.217, 0, -0.217, 0.9762, 0, 0, 0, 1, -4.28, 0.35, 0)
+transform = Transform3D(0.9762, -0.217, 0, 0.217, 0.9762, 0, 0, 0, 1, -4.28, 0.35, 0)
 mesh = SubResource("BoxMesh_1")
 material_override = ExtResource("2")
 
 [node name="RampB" type="MeshInstance3D" parent="Graybox"]
-transform = Transform3D(0.9762, -0.217, 0, 0.217, 0.9762, 0, 0, 0, 1, 4.28, 0.35, 0)
+transform = Transform3D(0.9762, 0.217, 0, -0.217, 0.9762, 0, 0, 0, 1, 4.28, 0.35, 0)
 mesh = SubResource("BoxMesh_2")
 material_override = ExtResource("2")
 
@@ -39,12 +51,32 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.85, 0)
 mesh = SubResource("BoxMesh_3")
 material_override = ExtResource("2")
 
-[node name="Rail-1.2" type="MeshInstance3D" parent="Graybox"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.6, -1.2)
+[node name="RailDeck-1.2" type="MeshInstance3D" parent="Graybox"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.94, -1.2)
 mesh = SubResource("BoxMesh_4")
 material_override = ExtResource("2")
 
-[node name="Rail+1.2" type="MeshInstance3D" parent="Graybox"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.6, 1.2)
+[node name="RailA-1.2" type="MeshInstance3D" parent="Graybox"]
+transform = Transform3D(0.9762, -0.217, 0, 0.217, 0.9762, 0, 0, 0, 1, -4.5165, 1.414, -1.2)
 mesh = SubResource("BoxMesh_5")
+material_override = ExtResource("2")
+
+[node name="RailB-1.2" type="MeshInstance3D" parent="Graybox"]
+transform = Transform3D(0.9762, 0.217, 0, -0.217, 0.9762, 0, 0, 0, 1, 4.5165, 1.414, -1.2)
+mesh = SubResource("BoxMesh_6")
+material_override = ExtResource("2")
+
+[node name="RailDeck+1.2" type="MeshInstance3D" parent="Graybox"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.94, 1.2)
+mesh = SubResource("BoxMesh_7")
+material_override = ExtResource("2")
+
+[node name="RailA+1.2" type="MeshInstance3D" parent="Graybox"]
+transform = Transform3D(0.9762, -0.217, 0, 0.217, 0.9762, 0, 0, 0, 1, -4.5165, 1.414, 1.2)
+mesh = SubResource("BoxMesh_8")
+material_override = ExtResource("2")
+
+[node name="RailB+1.2" type="MeshInstance3D" parent="Graybox"]
+transform = Transform3D(0.9762, 0.217, 0, -0.217, 0.9762, 0, 0, 0, 1, 4.5165, 1.414, 1.2)
+mesh = SubResource("BoxMesh_9")
 material_override = ExtResource("2")

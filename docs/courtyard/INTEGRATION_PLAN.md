@@ -2,8 +2,11 @@
 
 Branch: `feature/kengeki-courtyard`, created from `origin/character-integration` at `ed5cba4`.
 Engine: official Godot **4.3-stable** (`v4.3.stable.official.77dcf97d8`) only.
-Status: Phase 1 inspection done. Graybox of Agent 1's DRAFT blueprint (not yet reviewed by Kirk) built from
-`/workspace/kengeki_design/layout_data.py`. Deviations: `DEVIATIONS.md`.
+Status: graybox built from `/workspace/kengeki_design/layout_data.py` (sha256 `ab13ae0c…89c0d1`) with
+Bill's 6:40 PM addendum applied (nav bake y −0.6..2.0, no roof nav, 1.0 m arch rails, closed gate,
+collision-free keep, late-afternoon draft sun). Kirk approved the blueprint and the library lantern
+at 6:36 PM EDT per Bill. First real asset in: BJORN's `stone_lantern_toro` on all 10 lanterns.
+Deviations: `DEVIATIONS.md`. Asset ledger: `environment/courtyard/assets/ASSETS.md`.
 Nothing here has been visually or gameplay tested. All checks so far are headless.
 
 ## 1. Findings (Phase 1)
@@ -147,12 +150,18 @@ camera does not; that touches `player.tscn`/`enemy.tscn` masks, so it needs appr
 - Reference point: the test tōrō is 33.7 MB with 3 × 4K textures, too big to commit as is; an
   optimised version with 1K–2K textures should fit.
 
+### Asset intake (`tools/courtyard/sync_assets.py`)
+- `python3 tools/courtyard/sync_assets.py` lists every blueprint asset and where it is found in
+  BJORN's library (`<Category>/`, `Courtyard/` or `Decorations/`, under BJORN's or Bill's name).
+- `--apply NAME` copies the optimised GLB only if it exists, is ≤ 10 MB, has a `REPORT.md`, and has
+  a `MANIFEST.json` entry whose `validation_status` starts with PASS. It then logs it in
+  `ASSETS.md` (bytes, sha256, time) and regenerates the scenes. I read the HANDOFF/REPORT by hand
+  before each apply. Then: Godot 4.3 `--import`, set texture imports to VRAM, run the checks.
+- Lantern (first asset): GLB 9,765,812 B; with the 3 extracted PNGs about 18.8 MB in git. No LFS.
+
 ## 6. Needed from Agent 1 (Bill)
-1. Kirk's review result. The graybox follows the DRAFT, so tell me when the coordinates are final.
-2. The nav bake AABB height (see DEVIATIONS.md, open issues): OK to reduce it from 8 to about 2.6
-   to drop the rooftop/wall-top navmesh islands?
-3. Should any building or wall be a walkable surface? The current colliders say no.
-4. Are pond fence/rail heights final, given they can pull the camera in near the pond?
+Answered by the 6:40 PM addendum (nav height, no walkable roofs, rail heights, gate/keep,
+lighting). Open: Kirk's direct confirmation of the approval, and the final time of day.
 
 ## 7. Needed from Agent 2 (BJORN): per asset
 1. The library path and MANIFEST entry for each optimised GLB. Names should match Bill's asset
@@ -165,18 +174,23 @@ camera does not; that touches `player.tscn`/`enemy.tscn` masks, so it needs appr
 5. A heads-up when each asset lands, so I can copy it (read-only) and swap it in.
 
 ## 8. Verification status (headless only)
-- Godot 4.3 `--import`: exit 0, with no errors beyond the known dummy-renderer noise.
-- `tools/courtyard/check_courtyard.gd` on `castle_courtyard.tscn`: **PASS (65 checks)**:
-  - navmesh 403 polygons
-  - ground and capsule clearance at every marker
-  - nav paths from all 10 spawns to the player start and the origin
-  - 40×40 combat area free of colliders
-  - each spawn's 3.5 m line toward the origin is clear
-  - both bridge decks are on the navmesh, and the basin is not
-  - routes pond N↔S, gate↔hall forecourts, barracks lane↔kura yard
-- `tests/gameplay_tests.tscn` (on `main.tscn`): 109 passed, 8 failed. This is identical to the base
-  commit, and all 8 come from the missing private character GLB.
-- `--kengeki-smoke` on `main_courtyard.tscn`: 4 of 7 runs PASS. On `main.tscn`: 1 of 3 runs PASS.
-  The failures are always "enemy hits 0", which is flaky on both.
-- **Not done:** visual check, camera behaviour near walls, bridges and pond, FPS/draw calls, and
-  real play with 6–10 enemies. These need a windowed run and Kirk's eyes.
+Latest run (addendum + lantern, Oct 30, 2026, ~6:50 PM EDT):
+- Godot 4.3 `--import`: exit 0, with no errors beyond the known dummy-renderer noise
+  (`Parameter "m" is null`). The lantern material has albedo, normal and metallic/roughness
+  textures (2048²) and is back-face culled (single-sided).
+- `tools/courtyard/check_courtyard.gd`: **PASS (97 checks)**, navmesh 376 polygons. New since last run:
+  - 0 navmesh vertices above 2 m; hall, barracks, kura, N wall, E wall and gate roofs not walkable
+  - arch bridge crossable end to end over the deck (path max y 1.40, 15.2 m)
+  - arch rails 1.00–1.02 m above the deck at z 0, ±3, ±5.5 on both sides
+  - main gate blocks at z 30; keep volume has no colliders
+  - sun 35.0° elevation from the SW
+  - all 10 lanterns load the real GLB: 0.83 × 2.00 × 0.92 m, base at origin
+  - all earlier checks (spawn clearance, nav paths from all 10 spawns, combat area, routes)
+- `tests/gameplay_tests.tscn`: 109 passed, 8 failed, identical to the base commit (all 8 from the
+  missing private character GLB).
+- `--kengeki-smoke` on `main_courtyard.tscn`: 4 of 8 runs PASS; on the previous commit 2 of 3; on
+  `main.tscn` 2 of 2 this time (1 of 3 earlier). Failures are always "kills 3 … enemy hits 0":
+  the bot kills all enemies before one lands a hit. Flaky on both arenas; not changed (combat is
+  out of scope).
+- **Not done:** visual check (lighting, lantern look, baked AO), camera near walls, bridges and
+  pond, FPS/draw calls, real play with 6–10 enemies. These need a windowed run and Kirk's eyes.

@@ -51,7 +51,11 @@ def xform(pos=(0, 0, 0), rot=None, scale=(1, 1, 1)):
         elif axis == "x":
             xa, ya, za = [1, 0, 0], [0, c, s], [0, -s, c]
     xa = [v * scale[0] for v in xa]; ya = [v * scale[1] for v in ya]; za = [v * scale[2] for v in za]
-    return "Transform3D(%s)" % ", ".join(fmt(v) for v in xa + ya + za + list(pos))
+    # xa/ya/za are the basis COLUMNS (images of the local axes). The .tscn Transform3D literal is
+    # row-major (x.x, y.x, z.x, x.y, ...), so emit the rows. (Before Oct 30 6:45 PM this wrote the
+    # columns, which silently negated every rotation: yaw and ramp tilt were mirrored.)
+    rows = [xa[0], ya[0], za[0], xa[1], ya[1], za[1], xa[2], ya[2], za[2]]
+    return "Transform3D(%s)" % ", ".join(fmt(v) for v in rows + list(pos))
 
 
 def write(rel, text):
@@ -165,6 +169,29 @@ def asset_path(cat, name):
     # Expected location of the *optimised* GLB copied from BJORN's library (see plan).
     return "%s/assets/%s/%s/%s.glb" % (RES, cat, name, name)
 
+
+# BJORN may file an asset under its type category (Walls, Rocks, ...), under Courtyard/, or under
+# Decorations/, and may use his name or Bill's. Lookup order for both the library and the repo copy.
+EXTRA_CATEGORIES = ("Courtyard", "Decorations")
+
+
+def asset_candidates(asset):
+    cat, lib = CATEGORY.get(asset, ("Misc", asset))
+    cats = [cat] + [c for c in EXTRA_CATEGORIES if c != cat]
+    names = [lib] + ([asset] if asset != lib else [])
+    return [(c, n) for c in cats for n in names]
+
+
+def resolve_model_path(asset):
+    """res:// path of the GLB already copied into the repo for this asset, if any; otherwise the
+    default expected path (which does not exist, so the prefab shows its graybox)."""
+    for c, n in asset_candidates(asset):
+        rel = "%s/assets/%s/%s/%s.glb" % (BASE, c, n, n)
+        if os.path.isfile(os.path.join(ROOT, rel)):
+            return "res://" + rel
+    c, n = asset_candidates(asset)[0]
+    return asset_path(c, n)
+
 # ---------------------------------------------------------------------------------------
 # Blueprint (Agent 1 / Bill). Read from Bill's file; see BLUEPRINT_SRC.
 # ---------------------------------------------------------------------------------------
@@ -202,6 +229,28 @@ ARCH = {"wall_segment_4m", "corner_turret", "main_gate_yaguramon", "main_hall_go
         "storehouse_kura", "castle_keep_tenshu", "bridge_arched_taikobashi", "bridge_stone_slab", "pond_edge_stones_2m"}
 
 
+# Addendum, Oct 30 6:40 PM (Bill): nav bake y -0.6..2.0; late-afternoon sun ~35 deg from the SW.
+NAV_BAKE_HEIGHT = 2.6
+SUN_ELEVATION_DEG = 35.0
+SUN_FROM_AZIMUTH_DEG = 225.0  # compass bearing the light comes FROM (0 = north/-Z, 90 = east/+X)
+
+
+def sun_transform(elev, az_from, origin):
+    """DirectionalLight3D shines along its local -Z. Builds the basis so that -Z points away from
+    the compass bearing `az_from` and downward at `elev` degrees."""
+    e, a = math.radians(elev), math.radians(az_from)
+    # unit vector toward the sun (north = -Z, east = +X)
+    to_sun = (math.sin(a) * math.cos(e), math.sin(e), -math.cos(a) * math.cos(e))
+    zb = to_sun  # local +Z points at the sun, so -Z is the light direction
+    up = (0.0, 1.0, 0.0)
+    xb = (up[1] * zb[2] - up[2] * zb[1], up[2] * zb[0] - up[0] * zb[2], up[0] * zb[1] - up[1] * zb[0])
+    n = math.sqrt(sum(c * c for c in xb)); xb = tuple(c / n for c in xb)
+    yb = (zb[1] * xb[2] - zb[2] * xb[1], zb[2] * xb[0] - zb[0] * xb[2], zb[0] * xb[1] - zb[1] * xb[0])
+    # Transform3D(x.x, y.x, z.x, x.y, y.y, z.y, x.z, y.z, z.z, ox, oy, oz) - columns are basis vectors
+    vals = (xb[0], yb[0], zb[0], xb[1], yb[1], zb[1], xb[2], yb[2], zb[2]) + tuple(origin)
+    return "Transform3D(%s)" % ", ".join(fmt(round(v, 5)) for v in vals)
+
+
 def load_blueprint():
     """Executes Bill's layout_data.py from its own location without writing anything there
     (no import, so no __pycache__ is created in his folder)."""
@@ -219,8 +268,7 @@ def prefab_path(asset):
 
 
 def build_prefab(asset, size):
-    cat, lib = CATEGORY.get(asset, ("Misc", asset))
-    s = Scene(asset, asset_path(cat, lib))
+    s = Scene(asset, resolve_model_path(asset))
     sx, sy, sz = size
     s.begin(collision=asset not in ARCH and asset not in ("shrub_azalea", "rock_small_cluster"))
     if asset == "wall_segment_4m":
@@ -256,8 +304,14 @@ def build_prefab(asset, size):
         for nm, x, deg in (("RampA", -4.28, 12.53), ("RampB", 4.28, -12.53)):
             s.box(nm, (x, 0.35, 0), (4.61, 0.3, sz), "lacquer", rot=("z", deg))
         s.box("Deck", (0, 0.85, 0), (4.0, 0.3, sz), "lacquer")
+        # Rails: top bar ~1.0 m above the walking surface, following the arch (addendum 6:40 PM).
         for z in (-sz / 2, sz / 2):
-            s.box("Rail%+.1f" % z, (0, 1.6, z), (8.0, 0.12, 0.12), "lacquer")
+            s.box("RailDeck%+.1f" % z, (0, 1.94, z), (4.0, 0.12, 0.12), "lacquer")
+            for nm, x, deg in (("A", -4.28, 12.53), ("B", 4.28, -12.53)):
+                a = math.radians(deg)
+                off = 0.15 + 0.94  # ramp half-thickness + rail height along the surface normal
+                s.box("Rail%s%+.1f" % (nm, z), (x - math.sin(a) * off, 0.35 + math.cos(a) * off, z),
+                      (4.61, 0.12, 0.12), "lacquer", rot=("z", deg))
     elif asset == "bridge_stone_slab":
         s.box("Slab", (0, -0.15, 0), (sx, sy, sz), "stone")
     elif asset == "pond_edge_stones_2m":
@@ -311,7 +365,7 @@ def courtyard_arena(L):
     nav = s.sub("NavigationMesh", [])
 
     s.node("Arena", "Node3D", None, [("script", 'ExtResource("%s")' % script),
-           ("nav_bake_aabb", "AABB(-40, -0.6, -47, 80, 8, 82)")])
+           ("nav_bake_aabb", "AABB(-40, -0.6, -47, 80, %s, 82)" % fmt(NAV_BAKE_HEIGHT))])
 
     # ---- Collision (blueprint section 7): layer 1, mask 0, group nav_source ----
     s.node("Collision", "Node3D", ".", groups=["nav_source"])
@@ -351,8 +405,15 @@ def courtyard_arena(L):
     col("Bridges", "ArchRampN", (31, 0.35, -4.28), (2.4, 0.3, 4.61), ("x", -12.53))
     col("Bridges", "ArchDeck", (31, 0.85, 0), (2.4, 0.3, 4.0))
     col("Bridges", "ArchRampS", (31, 0.35, 4.28), (2.4, 0.3, 4.61), ("x", 12.53))
-    col("Bridges", "ArchRailW", (29.725, 1.0, 0), (0.15, 2.0, 13))
-    col("Bridges", "ArchRailE", (32.275, 1.0, 0), (0.15, 2.0, 13))
+    # Arch rails: short boxes following the arch, top ~1.0 m above the deck surface
+    # (addendum 6:40 PM; replaces the single 2 m slab to reduce camera pull-in).
+    for side, x in (("W", 29.725), ("E", 32.275)):
+        col("Bridges", "ArchRail%sDeck" % side, (x, 1.5, 0), (0.15, 1.0, 4.0))
+        for nm, zc, deg in (("N", -4.28, -12.53), ("S", 4.28, 12.53)):
+            a = math.radians(deg)
+            off = 0.15 + 0.5  # ramp half-thickness + half the rail height, along the ramp normal
+            col("Bridges", "ArchRail%s%s" % (side, nm), (x, 0.35 + math.cos(a) * off, zc + math.sin(a) * off),
+                (0.15, 1.0, 4.61), ("x", deg))
     col("Bridges", "SlabDeck", (26, -0.15, 0), (2.0, 0.3, 11))
     col("Bridges", "SlabRailW", (24.925, 0.45, 0), (0.15, 0.9, 10))
     col("Bridges", "SlabRailE", (27.075, 0.45, 0), (0.15, 0.9, 10))
@@ -408,9 +469,9 @@ def courtyard_arena(L):
     for (nm, x, z) in L.SPAWNS:
         s.node(nm.split("/")[-1], "Marker3D", "SpawnPoints", [("transform", xform((x, 0.1, z)))])
     s.node("Sun", "DirectionalLight3D", ".", [
-        ("transform", "Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 12, 0)"), ("rotation", "Vector3(-0.85, 0.65, 0)"),
-        ("light_color", "Color(1, 0.9, 0.78, 1)"), ("light_energy", "1.0"), ("shadow_enabled", "true"),
-        ("directional_shadow_max_distance", "90.0")])
+        ("transform", sun_transform(SUN_ELEVATION_DEG, SUN_FROM_AZIMUTH_DEG, (0, 12, 0))),
+        ("light_color", "Color(1, 0.86, 0.7, 1)"), ("light_energy", "1.05"), ("shadow_enabled", "true"),
+        ("shadow_opacity", "0.8"), ("shadow_blur", "1.5"), ("directional_shadow_max_distance", "90.0")])
     s.node("WorldEnvironment", "WorldEnvironment", ".", [("environment", env)])
     s.save("scenes/castle_courtyard.tscn")
 
