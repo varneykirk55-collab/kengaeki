@@ -16,8 +16,10 @@ Nothing here has been visually or gameplay tested. All checks so far are headles
 | `character-assets` | `75a63e1` | older ancestor |
 
 No blueprint, asset manifest, GLB or environment docs exist on any remote branch
-(`assets/environment/` holds only `.gitkeep`). On the shared box there was no
-`/workspace/kengeki_assets/library/` yet and no blueprint from Agent 1. The only environment
+(`assets/environment/` holds only `.gitkeep`). At 6:25 PM EDT the shared box had no
+`/workspace/kengeki_assets/library/` and no blueprint. Bill's DRAFT blueprint appeared at 6:28 PM in
+`/workspace/kengeki_design/` (handoff, design doc, layout PNG, `layout_data.py`). The library category
+folders appeared at about 6:26 PM, still empty. The only environment
 asset found is a test import at `/workspace/kengeki_assets/hunyuan_test/` (tōrō lantern, 50,012
 tris, 3 × 4K textures, native height 1.09 m, `_2m` scaled copy, clean Godot 4.3 import; see
 its `REPORT.md`).
