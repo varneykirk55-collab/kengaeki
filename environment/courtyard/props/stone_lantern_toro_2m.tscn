@@ -31,10 +31,10 @@ radial_segments = 6
 rings = 1
 
 [sub_resource type="CylinderShape3D" id="CylinderShape3D_6"]
-radius = 0.42
+radius = 0.45
 height = 2
 
-[node name="lantern_toro" type="Node3D"]
+[node name="stone_lantern_toro_2m" type="Node3D"]
 script = ExtResource("1")
 model_path = "res://environment/courtyard/assets/Decorations/stone_lantern_toro/stone_lantern_toro.glb"
 

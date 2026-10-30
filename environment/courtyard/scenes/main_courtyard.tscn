@@ -1,7 +1,7 @@
 [gd_scene load_steps=11 format=3]
 
 [ext_resource type="Script" path="res://scripts/main.gd" id="1_main"]
-[ext_resource type="PackedScene" path="res://environment/courtyard/scenes/courtyard_arena.tscn" id="2_arena"]
+[ext_resource type="PackedScene" path="res://environment/courtyard/scenes/castle_courtyard.tscn" id="2_arena"]
 [ext_resource type="PackedScene" path="res://scenes/characters/player.tscn" id="3_player"]
 [ext_resource type="PackedScene" path="res://scenes/camera/camera_rig.tscn" id="4_camera"]
 [ext_resource type="Script" path="res://scripts/encounter/encounter_manager.gd" id="5_encounter"]

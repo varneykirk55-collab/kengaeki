@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
-"""Generates the Kengeki courtyard graybox modules, props, shared materials and the
-courtyard skeleton scenes under res://environment/courtyard/.
+"""Generates the Kengeki courtyard graybox from Agent 1 (Bill)'s blueprint
+(/workspace/kengeki_design/layout_data.py, read in place): shared materials, one prefab per blueprint asset,
+the courtyard arena scene and a prefab gallery, all under res://environment/courtyard/.
 
 Run from the repo root:  python3 tools/courtyard/gen_graybox.py
 Re-running overwrites only files this script owns (all under environment/courtyard/,
@@ -164,182 +165,138 @@ def asset_path(cat, name):
     # Expected location of the *optimised* GLB copied from BJORN's library (see plan).
     return "%s/assets/%s/%s/%s.glb" % (RES, cat, name, name)
 
-
 # ---------------------------------------------------------------------------------------
-# Architectural modules
+# Blueprint (Agent 1 / Bill). Read from Bill's file; see BLUEPRINT_SRC.
 # ---------------------------------------------------------------------------------------
+import sys, shutil, hashlib, datetime
 
-def wall(length):
-    name = "wall_straight_%dm" % length
-    s = Scene(name, asset_path("Architecture", "castle_wall_%dm" % length))
-    s.begin()
-    # 1.2 m stone base, 3.8 m plaster, tiled cap = 5.4 m total; 1.2 m thick.
-    s.box("StoneBase", (0, 0.6, 0), (length, 1.2, 1.3), "stone")
-    s.box("Plaster", (0, 3.1, 0), (length, 3.8, 1.0), "plaster")
-    s.box("Beam", (0, 4.85, 0), (length, 0.3, 1.1), "wood")
-    s.box("RoofCap", (0, 5.2, 0), (length + 0.02, 0.4, 1.9), "tile")
-    s.col_box("Shape", (0, 2.7, 0), (length, 5.4, 1.2))
-    s.save("modules/%s.tscn" % name)
+# Bill's file is READ in place (never copied or edited). Override with KENGEKI_LAYOUT=/path/layout_data.py.
+BLUEPRINT_SRC = os.environ.get("KENGEKI_LAYOUT", "/workspace/kengeki_design/layout_data.py")
+BLUEPRINT_SHA = ""
 
-
-def wall_corner():
-    s = Scene("wall_corner", asset_path("Architecture", "castle_wall_corner"))
-    s.begin()
-    s.box("StoneBase", (0, 0.75, 0), (1.6, 1.5, 1.6), "stone")
-    s.box("Plaster", (0, 3.25, 0), (1.4, 3.5, 1.4), "plaster")
-    s.box("RoofCap", (0, 5.25, 0), (2.2, 0.5, 2.2), "tile")
-    s.col_box("Shape", (0, 2.75, 0), (1.6, 5.5, 1.6))
-    s.save("modules/wall_corner.tscn")
-
-
-def gate_main():
-    # Yakuimon / kabukimon style gate: 8 m wide, 4 m x 4.2 m opening, ~7.2 m tall. Doors closed
-    # (the area outside the walls is not playable); enemies spawn just inside.
-    s = Scene("gate_main", asset_path("Architecture", "main_gate"))
-    s.begin()
-    for side in (-1, 1):
-        s.box("SideWall%s" % ("L" if side < 0 else "R"), (side * 3.0, 2.7, 0), (2.0, 5.4, 1.2), "plaster")
-        s.box("SideBase%s" % ("L" if side < 0 else "R"), (side * 3.0, 0.6, 0), (2.0, 1.2, 1.3), "stone")
-        s.box("Post%s" % ("L" if side < 0 else "R"), (side * 2.15, 2.6, 0.2), (0.45, 5.2, 0.45), "lacquer")
-    s.box("Lintel", (0, 4.9, 0.2), (5.4, 0.45, 0.5), "lacquer")
-    s.box("Doors", (0, 2.1, -0.1), (3.9, 4.2, 0.25), "wood")
-    s.box("RoofBase", (0, 5.6, 0), (8.6, 0.6, 2.8), "tile")
-    s.box("RoofRidge", (0, 6.6, 0), (6.0, 0.9, 1.4), "tile")
-    s.box("RoofRidgeCap", (0, 7.15, 0), (6.6, 0.2, 0.3), "tile")
-    s.col_box("SideL", (-3.0, 2.7, 0), (2.0, 5.4, 1.2))
-    s.col_box("SideR", (3.0, 2.7, 0), (2.0, 5.4, 1.2))
-    s.col_box("Doors", (0, 2.7, 0), (4.0, 5.4, 1.2))
-    s.save("modules/gate_main.tscn")
+# Bill's asset name -> (BJORN library category, library asset name). The GLB is expected at
+# res://environment/courtyard/assets/<Category>/<asset>/<asset>.glb (optimised copy).
+CATEGORY = {
+    "wall_segment_4m": ("Walls", "wall_segment_4m"),
+    "corner_turret": ("Walls", "corner_turret"),
+    "main_gate_yaguramon": ("Gates", "main_gate_yaguramon"),
+    "main_hall_goten": ("Architecture", "main_hall_goten"),
+    "barracks_nagaya": ("Architecture", "barracks_nagaya"),
+    "storehouse_kura": ("Architecture", "storehouse_kura"),
+    "castle_keep_tenshu": ("Architecture", "castle_keep_tenshu"),
+    "bridge_arched_taikobashi": ("Bridges", "bridge_arched_taikobashi"),
+    "bridge_stone_slab": ("Bridges", "bridge_stone_slab"),
+    "stone_lantern_toro_2m": ("Decorations", "stone_lantern_toro"),
+    "tree_pine_kuromatsu": ("Vegetation", "tree_pine_kuromatsu"),
+    "tree_maple_momiji": ("Vegetation", "tree_maple_momiji"),
+    "tree_sakura": ("Vegetation", "tree_sakura"),
+    "shrub_azalea": ("Vegetation", "shrub_azalea"),
+    "rock_formation_large": ("Rocks", "rock_formation_large"),
+    "rock_medium": ("Rocks", "rock_medium"),
+    "rock_small_cluster": ("Rocks", "rock_small_cluster"),
+    "pond_edge_stones_2m": ("Rocks", "pond_edge_stones_2m"),
+}
+# Architecture: visual-only prefabs; their collision is authored in the arena's Collision node
+# (blueprint section 7). Props carry their own primitive collider and live under Collision/Props.
+ARCH = {"wall_segment_4m", "corner_turret", "main_gate_yaguramon", "main_hall_goten", "barracks_nagaya",
+        "storehouse_kura", "castle_keep_tenshu", "bridge_arched_taikobashi", "bridge_stone_slab", "pond_edge_stones_2m"}
 
 
-def bridge_arched():
-    # Taiko-bashi style bridge approximated by ramp / flat / ramp. 8 m long (X), 2.2 m walkable
-    # width, 0.6 m crown height. Ramp slope 11.3 deg: within CharacterBody3D floor_max_angle (45)
-    # and climbable by the nav agent (slope, not step). Rails 1 m tall block falling into the pond.
-    s = Scene("bridge_arched_8m", asset_path("Architecture", "arched_bridge"))
-    s.begin()
-    run, rise, flat, th, w = 3.0, 0.6, 2.0, 0.2, 2.2
-    a = math.degrees(math.atan2(rise, run))
-    slope_len = math.hypot(run, rise)
-    sa, ca = math.sin(math.radians(a)), math.cos(math.radians(a))
-    for sign, nm in ((-1, "Up"), (1, "Down")):
-        # top surface centre of the ramp, then push down half the thickness along its normal
-        cx, cy = sign * (flat / 2 + run / 2), rise / 2
-        nx, ny = (-sa if sign < 0 else sa), ca
-        c = (cx - nx * th / 2, cy - ny * th / 2, 0)
-        rot = ("z", a if sign < 0 else -a)
-        s.box("Ramp%s" % nm, c, (slope_len, th, w), "wood", rot)
-        s.col_box("Ramp%s" % nm, c, (slope_len, th, w), rot)
-        for side in (-1, 1):
-            rc = (cx, cy + 0.5, side * (w / 2 + 0.06))
-            s.box("Rail%s%s" % (nm, "L" if side < 0 else "R"), rc, (slope_len, 0.12, 0.12), "lacquer", rot)
-            s.col_box("Rail%s%s" % (nm, "L" if side < 0 else "R"), (cx, cy + 0.5, side * (w / 2 + 0.06)), (slope_len, 1.0, 0.12), rot)
-    s.box("Crown", (0, rise - th / 2, 0), (flat, th, w), "wood")
-    s.col_box("Crown", (0, rise - th / 2, 0), (flat, th, w))
-    for side in (-1, 1):
-        s.box("CrownRail%s" % ("L" if side < 0 else "R"), (0, rise + 0.5, side * (w / 2 + 0.06)), (flat, 0.12, 0.12), "lacquer")
-        s.col_box("CrownRail%s" % ("L" if side < 0 else "R"), (0, rise + 0.5, side * (w / 2 + 0.06)), (flat, 1.0, 0.12))
-        for px in (-3.6, -1.0, 1.0, 3.6):
-            y_top = rise * min(1.0, (4.0 - abs(px)) / run) if abs(px) > 1.0 else rise
-            s.box("Post%s%d" % ("L" if side < 0 else "R", int(px * 10)), (px, (y_top + 1.0) / 2 - 0.2, side * (w / 2 + 0.06)), (0.14, y_top + 1.0 + 0.4, 0.14), "lacquer")
-    s.save("modules/bridge_arched_8m.tscn")
+def load_blueprint():
+    """Executes Bill's layout_data.py from its own location without writing anything there
+    (no import, so no __pycache__ is created in his folder)."""
+    global BLUEPRINT_SHA
+    src = open(BLUEPRINT_SRC, "rb").read()
+    BLUEPRINT_SHA = hashlib.sha256(src).hexdigest()
+    ns = {"__name__": "layout_data", "__file__": BLUEPRINT_SRC}
+    exec(compile(src, BLUEPRINT_SRC, "exec"), ns)
+    return type("Layout", (), ns)
 
 
-def pond():
-    # 12 m (X) x 7 m (Z) decorative pond, shallow water visual, stone rim, and an invisible 1 m
-    # barrier on layer 1 so neither the player nor the navmesh enters the water. Gaps 2.4 m wide
-    # at the middle of both long sides (local +-Z) let bridge_arched_8m (rotated 90 deg) cross.
-    s = Scene("pond_12x7", asset_path("Landscape", "koi_pond"))
-    s.begin()
-    L, W, gap, rim = 12.0, 7.0, 2.4, 0.5
-    s.box("Water", (0, 0.03, 0), (L, 0.02, W), "water")
-    s.box("RimN", (0, 0.15, -W / 2 - rim / 2), (L + 2 * rim, 0.3, rim), "stone")
-    s.box("RimS", (0, 0.15, W / 2 + rim / 2), (L + 2 * rim, 0.3, rim), "stone")
-    s.box("RimW", (-L / 2 - rim / 2, 0.15, 0), (rim, 0.3, W), "stone")
-    s.box("RimE", (L / 2 + rim / 2, 0.15, 0), (rim, 0.3, W), "stone")
-    seg = (L + 2 * rim - gap) / 2
-    for zs, nm in ((-1, "N"), (1, "S")):
-        for xs, side in ((-1, "W"), (1, "E")):
-            s.col_box("Barrier%s%s" % (nm, side), (xs * (gap / 2 + seg / 2), 0.5, zs * (W / 2 + rim / 2)), (seg, 1.0, rim))
-    s.col_box("BarrierW", (-L / 2 - rim / 2, 0.5, 0), (rim, 1.0, W))
-    s.col_box("BarrierE", (L / 2 + rim / 2, 0.5, 0), (rim, 1.0, W))
-    # Water volume blockers (invisible) keep the player and navmesh off the water, leaving a
-    # 2.6 m corridor at x=0 where the bridge crosses (the bridge rails close that corridor).
-    half = (L / 2 - 1.3)
-    for xs, nm in ((-1, "W"), (1, "E")):
-        s.col_box("WaterBlock%s" % nm, (xs * (1.3 + half / 2), 0.5, 0), (half, 1.0, W))
-    s.save("modules/pond_12x7.tscn")
+def prefab_path(asset):
+    sub = "modules" if asset in ARCH else "props"
+    return "%s/%s/%s.tscn" % (RES, sub, asset)
 
 
-def building_hall():
-    s = Scene("building_hall_10x7", asset_path("Architecture", "hall_building"))
-    s.begin()
-    s.box("Plinth", (0, 0.3, 0), (10.4, 0.6, 7.4), "stone")
-    s.box("Body", (0, 2.4, 0), (10.0, 3.6, 7.0), "plaster")
-    for x in (-4.8, -1.6, 1.6, 4.8):
-        s.box("Pillar%d" % int(x * 10), (x, 2.4, 3.55), (0.3, 3.6, 0.3), "wood")
-    s.box("Eave", (0, 4.5, 0), (12.0, 0.4, 9.0), "tile")
-    s.box("Roof", (0, 5.4, 0), (9.0, 1.4, 5.6), "tile")
-    s.col_box("Shape", (0, 2.4, 0), (10.4, 4.8, 7.4))
-    s.save("modules/building_hall_10x7.tscn")
-
-
-def path_segment():
-    s = Scene("path_stone_4m", asset_path("Landscape", "stone_path_4m"))
-    s.begin(collision=False)  # flush with the ground: visual only
-    for i, z in enumerate((-1.5, -0.5, 0.5, 1.5)):
-        s.box("Slab%d" % i, (0.08 * ((i % 2) * 2 - 1), 0.01, z), (2.2, 0.02, 0.9), "path", shadow=False)
-    s.save("modules/path_stone_4m.tscn")
+def build_prefab(asset, size):
+    cat, lib = CATEGORY.get(asset, ("Misc", asset))
+    s = Scene(asset, asset_path(cat, lib))
+    sx, sy, sz = size
+    s.begin(collision=asset not in ARCH and asset not in ("shrub_azalea", "rock_small_cluster"))
+    if asset == "wall_segment_4m":
+        s.box("Base", (0, 0.6, 0), (sx, 1.2, sz + 0.1), "stone")
+        s.box("Plaster", (0, 2.8, 0), (sx, 3.2, sz), "plaster")
+        s.box("Cap", (0, sy - 0.3, 0), (sx, 0.6, sz + 0.5), "tile")
+    elif asset == "corner_turret":
+        s.box("Base", (0, 2, 0), (sx, 4, sz), "stone")
+        s.box("Body", (0, 6.25, 0), (sx - 1, 4.5, sz - 1), "plaster")
+        s.box("Roof", (0, sy - 0.75, 0), (sx + 0.6, 1.5, sz + 0.6), "tile")
+    elif asset == "main_gate_yaguramon":
+        for x in (-6, 6):
+            s.box("Pier%+d" % x, (x, 2.25, 0), (4, 4.5, sz), "stone")
+        s.box("Doors", (0, 2.25, 0), (8, 4.5, 0.4), "lacquer")
+        s.box("House", (0, 6.25, 0), (sx, 3.5, sz - 1), "plaster")
+        s.box("Roof", (0, 9, 0), (sx + 1, 2, sz + 1), "tile")
+    elif asset in ("main_hall_goten", "barracks_nagaya", "storehouse_kura"):
+        base = 1.0 if asset == "main_hall_goten" else 0.5
+        roof = 3.5 if asset == "main_hall_goten" else 2.0
+        mat = "plaster" if asset == "storehouse_kura" else "wood"
+        s.box("Base", (0, base / 2, 0), (sx, base, sz), "stone")
+        s.box("Body", (0, base + (sy - base - roof) / 2, 0), (sx - 1, sy - base - roof, sz - 1), mat)
+        s.box("Roof", (0, sy - roof / 2, 0), (sx + 0.8, roof, sz + 0.8), "tile")
+    elif asset == "castle_keep_tenshu":
+        s.box("Base", (0, 4, 0), (sx, 8, sz), "stone")
+        y = 8
+        for i, (w, d) in enumerate([(24, 17), (18, 13), (12, 9)]):
+            s.box("Tier%d" % i, (0, y + 2.5, 0), (w, 5, d), "plaster")
+            s.box("Roof%d" % i, (0, y + 5.5, 0), (w + 2, 1, d + 2), "tile")
+            y += 6.5
+    elif asset == "bridge_arched_taikobashi":
+        # Local X = length (13 m), deck width on Z. Matches the arena colliders (section 7).
+        for nm, x, deg in (("RampA", -4.28, 12.53), ("RampB", 4.28, -12.53)):
+            s.box(nm, (x, 0.35, 0), (4.61, 0.3, sz), "lacquer", rot=("z", deg))
+        s.box("Deck", (0, 0.85, 0), (4.0, 0.3, sz), "lacquer")
+        for z in (-sz / 2, sz / 2):
+            s.box("Rail%+.1f" % z, (0, 1.6, z), (8.0, 0.12, 0.12), "lacquer")
+    elif asset == "bridge_stone_slab":
+        s.box("Slab", (0, -0.15, 0), (sx, sy, sz), "stone")
+    elif asset == "pond_edge_stones_2m":
+        s.box("Stones", (0, 0.15, 0), (sx, 0.3, sz), "stone")
+    elif asset == "stone_lantern_toro_2m":
+        s.box("Plinth", (0, 0.15, 0), (0.9, 0.3, 0.9), "stone")
+        s.cyl("Pillar", (0, 0.8, 0), 0.16, 0.2, 1.0, "stone", 8)
+        s.box("Firebox", (0, 1.48, 0), (0.6, 0.36, 0.6), "stone")
+        s.cyl("Roof", (0, 1.8, 0), 0.08, 0.5, 0.28, "stone", 6)
+        s.cyl("Finial", (0, 1.98, 0), 0.0, 0.07, 0.12, "stone", 6)
+        s.col_cyl("Shape", (0, 1.0, 0), 0.45, 2.0)
+    elif asset.startswith("tree_"):
+        pine = asset == "tree_pine_kuromatsu"
+        r, h = (0.35, 3.0) if pine else (0.3, 2.5)
+        leaf = "foliage" if pine else "lacquer" if "maple" in asset else "plaster"
+        s.cyl("Trunk", (0, sy * 0.3, 0), r * 0.7, r, sy * 0.6, "bark", 8)
+        s.sphere("Canopy", (0, sy * 0.7, 0), sx / 2, sy * 0.55, leaf)
+        s.col_cyl("Trunk", (0, h / 2, 0), r, h)
+    elif asset == "shrub_azalea":
+        s.sphere("Body", (0, sy / 2, 0), sx / 2, sy, "foliage")
+    elif asset.startswith("rock_"):
+        s.sphere("Body", (0, sy / 2, 0), max(sx, sz) / 2, sy, "stone")
+        if asset == "rock_formation_large":
+            s.col_box("Shape", (0, 0.9, 0), (2.6, 1.8, 2.1))
+        elif asset == "rock_medium":
+            s.col_box("Shape", (0, 0.45, 0), (1.3, 0.9, 1.0))
+    else:  # unknown blueprint asset: authored-size box, no collision
+        s.box("Box", (0, sy / 2, 0), size, "stone")
+    s.save(prefab_path(asset)[len(RES) + 1:])
 
 
 # ---------------------------------------------------------------------------------------
-# Props
+# Arena
 # ---------------------------------------------------------------------------------------
 
-def lantern():
-    # Matches BJORN's first batch: Decorations/stone_lantern_toro, 2.0 m tall, origin at base.
-    s = Scene("lantern_toro", asset_path("Decorations", "stone_lantern_toro"))
-    s.begin()
-    s.box("Plinth", (0, 0.15, 0), (0.9, 0.3, 0.9), "stone")
-    s.cyl("Pillar", (0, 0.8, 0), 0.16, 0.2, 1.0, "stone", 8)
-    s.box("Firebox", (0, 1.48, 0), (0.6, 0.36, 0.6), "stone")
-    s.cyl("Roof", (0, 1.8, 0), 0.08, 0.5, 0.28, "stone", 6)
-    s.cyl("Finial", (0, 1.98, 0), 0.0, 0.07, 0.12, "stone", 6)
-    s.col_cyl("Shape", (0, 1.0, 0), 0.42, 2.0)  # same radius as the placeholder arena lantern
-    s.save("props/lantern_toro.tscn")
-
-
-def tree_pine():
-    s = Scene("tree_pine", asset_path("Vegetation", "japanese_pine"))
-    s.begin()
-    s.cyl("Trunk", (0, 1.75, 0), 0.22, 0.38, 3.5, "bark", 8)
-    s.sphere("CanopyA", (0, 4.0, 0), 1.8, 1.4, "foliage")
-    s.sphere("CanopyB", (1.3, 3.4, 0.4), 1.3, 1.0, "foliage")
-    s.sphere("CanopyC", (-1.1, 3.6, -0.6), 1.2, 0.9, "foliage")
-    s.col_cyl("Trunk", (0, 1.5, 0), 0.45, 3.0)  # trunk only; canopy is above head height
-    s.save("props/tree_pine.tscn")
-
-
-def rock_large():
-    s = Scene("rock_large", asset_path("Landscape", "garden_rock_large"))
-    s.begin()
-    s.sphere("Body", (0, 0.45, 0), 0.9, 1.1, "stone")
-    s.col_box("Shape", (0, 0.45, 0), (1.5, 0.9, 1.3))
-    s.save("props/rock_large.tscn")
-
-
-# ---------------------------------------------------------------------------------------
-# Scenes
-# ---------------------------------------------------------------------------------------
-
-def courtyard_arena():
-    """Skeleton courtyard: same 40 x 40 m walled footprint, gates, player start, spawn markers
-    and lantern/tree obstacle positions as scenes/arena/arena.tscn, rebuilt from modules.
-    Bill's blueprint replaces the Layout contents; node names the game relies on stay fixed."""
-    s = Scene("Arena", script=False)
+def courtyard_arena(L):
+    s = Scene("Arena", script=False, notes="GENERATED by tools/courtyard/gen_graybox.py from %s (sha256 %s).\n"
+              "Do not hand-edit; change the blueprint and re-run the generator." % (BLUEPRINT_SRC, BLUEPRINT_SHA))
     script = s._ext("Script", RES + "/scripts/courtyard_arena.gd")
-    M = lambda n: RES + "/modules/%s.tscn" % n
-    P = lambda n: RES + "/props/%s.tscn" % n
     sky_mat = s.sub("ProceduralSkyMaterial", [
         ("sky_top_color", "Color(0.36, 0.5, 0.7, 1)"), ("sky_horizon_color", "Color(0.86, 0.74, 0.62, 1)"),
         ("ground_bottom_color", "Color(0.2, 0.18, 0.16, 1)"), ("ground_horizon_color", "Color(0.86, 0.74, 0.62, 1)"),
@@ -352,87 +309,132 @@ def courtyard_arena():
         ("fog_enabled", "true"), ("fog_light_color", "Color(0.8, 0.72, 0.64, 1)"), ("fog_density", "0.004"),
         ("adjustment_enabled", "true"), ("adjustment_saturation", "0.92")])
     nav = s.sub("NavigationMesh", [])
-    ground_shape = s.sub("BoxShape3D", [("size", "Vector3(120, 1, 120)")])
-    grass = s.sub("BoxMesh", [("size", "Vector3(120, 0.1, 120)")])
-    gravel = s.sub("BoxMesh", [("size", "Vector3(40, 0.04, 40)")])
 
-    s.node("Arena", "Node3D", None, [("script", 'ExtResource("%s")' % script)])
-    s.node("Layout", "Node3D", ".", groups=["nav_source"])
-    s.node("Ground", "StaticBody3D", "Layout", [("collision_layer", "1"), ("collision_mask", "0")])
-    s.node("Shape", "CollisionShape3D", "Layout/Ground", [("transform", xform((0, -0.5, 0))), ("shape", ground_shape)])
-    s.node("Grass", "MeshInstance3D", "Layout/Ground", [("transform", xform((0, -0.06, 0))), ("mesh", grass),
-           ("material_override", s.mat("grass")), ("cast_shadow", "0")])
-    s.node("Gravel", "MeshInstance3D", "Layout/Ground", [("transform", xform((0, -0.02, 0))), ("mesh", gravel),
-           ("material_override", s.mat("gravel")), ("cast_shadow", "0")])
+    s.node("Arena", "Node3D", None, [("script", 'ExtResource("%s")' % script),
+           ("nav_bake_aabb", "AABB(-40, -0.6, -47, 80, 8, 82)")])
 
-    # Bounds: inner wall faces at +-20 m (as the placeholder), walls 1.2 m thick -> centre 20.6.
-    s.node("Bounds", "Node3D", "Layout")
-    c = 20.6
-    sides = {"North": ((0, 0, -c), 0), "South": ((0, 0, c), 180), "East": ((c, 0, 0), -90), "West": ((-c, 0, 0), 90)}
-    for side, (pos, yaw) in sides.items():
-        s.node(side, "Node3D", "Layout/Bounds", [("transform", xform(pos, ("y", yaw)))])
-        s.node("Gate", None, "Layout/Bounds/%s" % side, instance=M("gate_main"))
-        # 16 m each side of the 8 m gate: 6 + 6 + 4
-        for i, (x, ln) in enumerate([(-7, 6), (-13, 6), (-18, 4), (7, 6), (13, 6), (18, 4)]):
-            s.node("Wall%d" % i, None, "Layout/Bounds/%s" % side, [("transform", xform((x, 0, 0)))],
-                   instance=M("wall_straight_%dm" % ln))
-    for i, (x, z) in enumerate([(-c, -c), (c, -c), (c, c), (-c, c)]):
-        s.node("Corner%d" % i, None, "Layout/Bounds", [("transform", xform((x, 0, z)))], instance=M("wall_corner"))
+    # ---- Collision (blueprint section 7): layer 1, mask 0, group nav_source ----
+    s.node("Collision", "Node3D", ".", groups=["nav_source"])
+    bodies = set()
 
-    s.node("Paths", "Node3D", "Layout")
-    for i in range(10):
-        z = -18 + i * 4
-        if abs(z) > 3:
-            s.node("NS%d" % i, None, "Layout/Paths", [("transform", xform((0, 0, z)))], instance=M("path_stone_4m"))
-            s.node("EW%d" % i, None, "Layout/Paths", [("transform", xform((z, 0, 0), ("y", 90)))], instance=M("path_stone_4m"))
+    def col(group, name, pos, size, rot=None, cyl=None):
+        if group not in bodies:
+            s.node(group, "StaticBody3D", "Collision", [("collision_layer", "1"), ("collision_mask", "0")])
+            bodies.add(group)
+        if cyl:
+            sh = s.sub("CylinderShape3D", [("radius", fmt(cyl[0])), ("height", fmt(cyl[1]))])
+        else:
+            sh = s.sub("BoxShape3D", [("size", vec(size))])
+        s.node(name, "CollisionShape3D", "Collision/" + group, [("transform", xform(pos, rot)), ("shape", sh)])
 
-    s.node("Props", "Node3D", "Layout")
-    for i, (x, z) in enumerate([(8, 8), (-8, 8), (8, -8), (-8, -8)]):
-        s.node("Lantern%d" % i, None, "Layout/Props", [("transform", xform((x, 0, z), ("y", 15 + 37 * i)))], instance=P("lantern_toro"))
-    s.node("Tree0", None, "Layout/Props", [("transform", xform((-17, 0, -17)))], instance=P("tree_pine"))
+    col("Ground", "G1_West", (-7.75, -0.5, -6), (64.5, 1, 80))
+    col("Ground", "G2_EastStrip", (37.75, -0.5, -6), (4.5, 1, 80))
+    col("Ground", "G3_NorthOfPond", (30, -0.5, -25.5), (11, 1, 41))
+    col("Ground", "G4_SouthOfPond", (30, -0.5, 19.5), (11, 1, 29))
+    col("Ground", "PondBasin", (30, -1.3, 0), (11, 0.2, 10))
+    col("WallRuns", "N", (0, 2.5, -46), (72, 5, 1.6))
+    col("WallRuns", "SW", (-22, 2.5, 34), (28, 5, 1.6))
+    col("WallRuns", "SE", (22, 2.5, 34), (28, 5, 1.6))
+    col("WallRuns", "E", (40, 2.5, -6), (1.6, 5, 72))
+    col("WallRuns", "W", (-40, 2.5, -6), (1.6, 5, 72))
+    for nm, x, z in (("NW", -40, -46), ("NE", 40, -46), ("SW", -40, 34), ("SE", 40, 34)):
+        col("Turrets", nm, (x, 5, z), (8, 10, 8))
+    col("Gate", "Gate", (0, 5, 34), (16, 10, 8))
+    col("Buildings", "Hall", (0, 4.5, -39), (24, 9, 12))
+    col("Buildings", "Barracks", (-36, 3, 0), (6, 6, 24))
+    col("Buildings", "Kura", (-31, 3.5, -36), (6, 7, 8))
+    col("Pond", "FenceW", (24.35, 0.45, 0), (0.3, 0.9, 10.6))
+    col("Pond", "FenceE", (35.65, 0.45, 0), (0.3, 0.9, 10.6))
+    for side, z in (("N", -5.15), ("S", 5.15)):
+        for i, (x0, x1) in enumerate(((24.5, 25), (27, 29.8), (32.2, 35.5))):
+            col("Pond", "Fence%s%d" % (side, i), ((x0 + x1) / 2, 0.45, z), (x1 - x0, 0.9, 0.3))
+    col("Bridges", "ArchRampN", (31, 0.35, -4.28), (2.4, 0.3, 4.61), ("x", -12.53))
+    col("Bridges", "ArchDeck", (31, 0.85, 0), (2.4, 0.3, 4.0))
+    col("Bridges", "ArchRampS", (31, 0.35, 4.28), (2.4, 0.3, 4.61), ("x", 12.53))
+    col("Bridges", "ArchRailW", (29.725, 1.0, 0), (0.15, 2.0, 13))
+    col("Bridges", "ArchRailE", (32.275, 1.0, 0), (0.15, 2.0, 13))
+    col("Bridges", "SlabDeck", (26, -0.15, 0), (2.0, 0.3, 11))
+    col("Bridges", "SlabRailW", (24.925, 0.45, 0), (0.15, 0.9, 10))
+    col("Bridges", "SlabRailE", (27.075, 0.45, 0), (0.15, 0.9, 10))
 
-    # Reserved for Bill's blueprint (pond, bridges, buildings, landscaping). Empty on purpose.
-    s.node("Water", "Node3D", "Layout")
-    s.node("Buildings", "Node3D", "Layout")
-    s.node("Landscaping", "Node3D", "Layout")
+    # Props with their own colliders (lanterns, trees, rocks, shrubs) stay inside nav_source.
+    s.node("Props", "Node3D", "Collision")
+    groups_made = set()
+    for (oid, asset, x, y, z, yaw, size, colnote, *_rest) in L.objs:
+        if asset in ARCH:
+            continue
+        grp = {"stone": "Lanterns"}.get(asset.split("_")[0], asset.split("_")[0].capitalize() + "s")
+        if grp not in groups_made:
+            s.node(grp, "Node3D", "Collision/Props"); groups_made.add(grp)
+        s.node(oid, None, "Collision/Props/" + grp, [("transform", xform((x, y, z), ("y", yaw)))], instance=prefab_path(asset))
 
+    # ---- Visual: no colliders ----
+    s.node("Visual", "Node3D", ".")
+    s.node("Ground", "Node3D", "Visual")
+    for nm, pos, size in (("G1", (-7.75, -0.03, -6), (64.5, 0.06, 80)), ("G2", (37.75, -0.03, -6), (4.5, 0.06, 80)),
+                          ("G3", (30, -0.03, -25.5), (11, 0.06, 41)), ("G4", (30, -0.03, 19.5), (11, 0.06, 29))):
+        s.node(nm, "MeshInstance3D", "Visual/Ground", [("transform", xform(pos)), ("mesh", s.sub("BoxMesh", [("size", vec(size))])),
+               ("material_override", s.mat("grass")), ("cast_shadow", "0")])
+    s.node("OuterGrass", "MeshInstance3D", "Visual/Ground", [("transform", xform((0, -0.08, -6))),
+           ("mesh", s.sub("BoxMesh", [("size", "Vector3(200, 0.05, 200)")])), ("material_override", s.mat("grass")), ("cast_shadow", "0")])
+    s.node("Gravel", "MeshInstance3D", "Visual/Ground", [("transform", xform((0, 0.005, 0))),
+           ("mesh", s.sub("BoxMesh", [("size", "Vector3(40, 0.01, 40)")])), ("material_override", s.mat("gravel")), ("cast_shadow", "0")])
+    s.node("Paths", "Node3D", "Visual")
+    for (nm, x0, z0, x1, z1, w) in L.PATHS:
+        size = (abs(x1 - x0), 0.02, w) if z0 == z1 else (w, 0.02, abs(z1 - z0))
+        s.node(nm.split(" ")[0], "MeshInstance3D", "Visual/Paths", [("transform", xform(((x0 + x1) / 2, 0.01, (z0 + z1) / 2))),
+               ("mesh", s.sub("BoxMesh", [("size", vec(size))])), ("material_override", s.mat("path")), ("cast_shadow", "0")])
+    s.node("Pond", "Node3D", "Visual")
+    s.node("Water", "MeshInstance3D", "Visual/Pond", [("transform", xform((30, -0.3, 0))),
+           ("mesh", s.sub("BoxMesh", [("size", "Vector3(11, 0.02, 10)")])), ("material_override", s.mat("water")), ("cast_shadow", "0")])
+    s.node("Basin", "MeshInstance3D", "Visual/Pond", [("transform", xform((30, -1.25, 0))),
+           ("mesh", s.sub("BoxMesh", [("size", "Vector3(11, 0.1, 10)")])), ("material_override", s.mat("stone")), ("cast_shadow", "0")])
+    vis_groups = {"wall_segment_4m": "Walls", "corner_turret": "Turrets", "main_gate_yaguramon": "Gate",
+                  "castle_keep_tenshu": "Keep", "bridge_arched_taikobashi": "Bridges", "bridge_stone_slab": "Bridges",
+                  "pond_edge_stones_2m": "Pond"}
+    made = {"Pond"}
+    for (oid, asset, x, y, z, yaw, size, colnote, *_rest) in L.objs:
+        if asset not in ARCH:
+            continue
+        grp = vis_groups.get(asset, "Buildings")
+        if grp not in made:
+            s.node(grp, "Node3D", "Visual"); made.add(grp)
+        s.node(oid, None, "Visual/" + grp, [("transform", xform((x, y, z), ("y", yaw)))], instance=prefab_path(asset))
+
+    # ---- Gameplay interface (names main.gd / arena.gd rely on) ----
     s.node("NavigationRegion3D", "NavigationRegion3D", ".", [("navigation_mesh", nav)])
-    s.node("PlayerStart", "Marker3D", ".", [("transform", xform((0, 0.05, 8)))])
+    s.node("PlayerStart", "Marker3D", ".", [("transform", xform(L.PLAYER))])
     s.node("SpawnPoints", "Node3D", ".")
-    for nm, p in [("North", (0, 0.1, -17)), ("South", (0, 0.1, 17)), ("East", (17, 0.1, 0)), ("West", (-17, 0.1, 0)),
-                  ("NorthEast", (13, 0.1, -13)), ("NorthWest", (-13, 0.1, -13)), ("SouthEast", (13, 0.1, 13)),
-                  ("SouthWest", (-13, 0.1, 13))]:
-        s.node(nm, "Marker3D", "SpawnPoints", [("transform", xform(p))])
+    for (nm, x, z) in L.SPAWNS:
+        s.node(nm.split("/")[-1], "Marker3D", "SpawnPoints", [("transform", xform((x, 0.1, z)))])
     s.node("Sun", "DirectionalLight3D", ".", [
         ("transform", "Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 12, 0)"), ("rotation", "Vector3(-0.85, 0.65, 0)"),
         ("light_color", "Color(1, 0.9, 0.78, 1)"), ("light_energy", "1.0"), ("shadow_enabled", "true"),
-        ("directional_shadow_max_distance", "70.0")])
+        ("directional_shadow_max_distance", "90.0")])
     s.node("WorldEnvironment", "WorldEnvironment", ".", [("environment", env)])
-    s.save("scenes/courtyard_arena.tscn")
+    s.save("scenes/castle_courtyard.tscn")
 
 
-def modules_gallery():
-    s = Scene("ModulesGallery", script=False)
-    s.node("ModulesGallery", "Node3D", None)
-    items = ["wall_straight_6m", "wall_straight_4m", "wall_corner", "gate_main", "bridge_arched_8m",
-             "pond_12x7", "building_hall_10x7", "path_stone_4m"]
-    x = 0
-    for n in items:
-        s.node(n, None, ".", [("transform", xform((x, 0, 0)))], instance=RES + "/modules/%s.tscn" % n)
-        x += 14
-    for i, n in enumerate(["lantern_toro", "tree_pine", "rock_large"]):
-        s.node(n, None, ".", [("transform", xform((i * 5, 0, 12)))], instance=RES + "/props/%s.tscn" % n)
-    # Pond + bridge crossing it, as they are meant to combine.
-    s.node("PondWithBridge", "Node3D", ".", [("transform", xform((0, 0, 30)))])
-    s.node("Pond", None, "PondWithBridge", instance=RES + "/modules/pond_12x7.tscn")
-    s.node("Bridge", None, "PondWithBridge", [("transform", xform((0, 0, 0), ("y", 90)))], instance=RES + "/modules/bridge_arched_8m.tscn")
+def prefab_gallery(L):
+    s = Scene("PrefabGallery", script=False)
+    s.node("PrefabGallery", "Node3D", None)
+    seen = {}
+    for o in L.objs:
+        seen.setdefault(o[1], o[6])
+    x = 0.0
+    for asset, size in seen.items():
+        x += size[0] / 2 + 2
+        s.node(asset, None, ".", [("transform", xform((x, 0, 0)))], instance=prefab_path(asset))
+        x += size[0] / 2
     s.node("Sun", "DirectionalLight3D", ".", [("rotation", "Vector3(-0.85, 0.65, 0)"), ("shadow_enabled", "true")])
-    s.save("scenes/modules_gallery.tscn")
+    s.save("scenes/prefab_gallery.tscn")
 
 
 if __name__ == "__main__":
+    L = load_blueprint()
     gen_materials()
-    wall(6); wall(4); wall_corner(); gate_main(); bridge_arched(); pond(); building_hall(); path_segment()
-    lantern(); tree_pine(); rock_large()
-    courtyard_arena(); modules_gallery()
-    print("graybox generated")
+    for asset in sorted({o[1] for o in L.objs}):
+        build_prefab(asset, next(o[6] for o in L.objs if o[1] == asset))
+    courtyard_arena(L)
+    prefab_gallery(L)
+    print("graybox generated from %s (sha256 %s): %d objects, %d prefabs" % (BLUEPRINT_SRC, BLUEPRINT_SHA[:12], len(L.objs), len({o[1] for o in L.objs})))

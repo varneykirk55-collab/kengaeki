@@ -15,7 +15,7 @@ func check(ok: bool, msg: String) -> void:
 
 func _initialize() -> void:
 	var args := OS.get_cmdline_user_args()
-	var path := args[0] if args.size() > 0 else "res://environment/courtyard/scenes/courtyard_arena.tscn"
+	var path := args[0] if args.size() > 0 else "res://environment/courtyard/scenes/castle_courtyard.tscn"
 	print("==== courtyard check: %s ====" % path)
 	var packed := load(path) as PackedScene
 	check(packed != null, "scene loads")
@@ -80,6 +80,8 @@ func _run(arena: Node) -> void:
 			var route := NavigationServer3D.map_get_path(map, from, to, true)
 			var ok := route.size() > 0 and route[route.size() - 1].distance_to(to) < 0.6 and from.distance_to(p.global_position) < 1.0
 			check(ok, "nav path %s -> %s (%d points)" % [p.name, tname, route.size()])
+	if arena is CourtyardArena:
+		_blueprint_checks(arena, map, space, spawns)
 	print("==== courtyard check: %s ====" % ("PASS" if fails == 0 else "%d FAILED" % fails))
 	quit(0 if fails == 0 else 1)
 
@@ -89,3 +91,44 @@ func _all(n: Node) -> Array:
 	for c in n.get_children():
 		out.append_array(_all(c))
 	return out
+
+
+## Extra checks from Agent 1's blueprint (agent3_handoff.md sections 3, 4, 5, 9).
+func _blueprint_checks(arena: Node, map: RID, space: PhysicsDirectSpaceState3D, spawns: Array) -> void:
+	# Combat area x/z -20..20 has no colliders above the ground.
+	var q := PhysicsShapeQueryParameters3D.new()
+	var b := BoxShape3D.new()
+	b.size = Vector3(40, 3.9, 40)
+	q.shape = b
+	q.transform = Transform3D(Basis(), Vector3(0, 2.05, 0))
+	q.collision_mask = 1
+	var hits := space.intersect_shape(q, 8)
+	check(hits.is_empty(), "combat area 40x40 clear of colliders (%d hits)" % hits.size())
+	# Spawns: clear 3.5 m line toward the origin (enter state walks inward).
+	for p in spawns:
+		var from: Vector3 = p.global_position + Vector3.UP * 0.9
+		var dir := (Vector3(0, from.y, 0) - from).normalized()
+		var hit := space.intersect_ray(PhysicsRayQueryParameters3D.create(from, from + dir * 3.5, 1))
+		check(hit.is_empty(), "%s: clear 3.5 m toward origin" % p.name)
+	# Bridges navigable, pond basin not.
+	for item in [["arch bridge deck", Vector3(31, 1.0, 0)], ["slab bridge deck", Vector3(26, 0.0, 0)]]:
+		var cp := NavigationServer3D.map_get_closest_point(map, item[1])
+		var flat := Vector2(cp.x - item[1].x, cp.z - item[1].z).length()
+		check(flat < 0.35 and absf(cp.y - item[1].y) < 0.6, "%s on navmesh (closest %s; navmesh sits up to ~0.5 m above colliders at cell_height 0.25)" % [item[0], cp])
+	var basin := Vector3(29.0, -1.2, 2.5)
+	var cpb := NavigationServer3D.map_get_closest_point(map, basin)
+	check(cpb.y > -0.6, "pond basin not navigable (closest navmesh point %s)" % cpb)
+	var high := 0
+	for v in arena.get_node(^"NavigationRegion3D").navigation_mesh.get_vertices():
+		if v.y > 2.0:
+			high += 1
+	print("  INFO  navmesh vertices above y=2 m (rooftop/wall-top islands): %d" % high)
+	# Routes that must exist.
+	for pair in [["pond north -> south", Vector3(31, 0, -9), Vector3(31, 0, 9)],
+			["gate forecourt -> hall forecourt", Vector3(0, 0, 25), Vector3(0, 0, -25)],
+			["barracks lane -> kura yard", Vector3(-26, 0, 0), Vector3(-26, 0, -40)]]:
+		var a := NavigationServer3D.map_get_closest_point(map, pair[1])
+		var c := NavigationServer3D.map_get_closest_point(map, pair[2])
+		var route := NavigationServer3D.map_get_path(map, a, c, true)
+		check(route.size() > 0 and route[route.size() - 1].distance_to(c) < 0.6 and a.distance_to(pair[1]) < 1.0 and c.distance_to(pair[2]) < 1.0,
+			"nav route %s (%d points)" % [pair[0], route.size()])

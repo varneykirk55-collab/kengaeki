@@ -1,0 +1,81 @@
+[gd_scene load_steps=19 format=3]
+
+[ext_resource type="PackedScene" path="res://environment/courtyard/modules/wall_segment_4m.tscn" id="1"]
+[ext_resource type="PackedScene" path="res://environment/courtyard/modules/corner_turret.tscn" id="2"]
+[ext_resource type="PackedScene" path="res://environment/courtyard/modules/main_gate_yaguramon.tscn" id="3"]
+[ext_resource type="PackedScene" path="res://environment/courtyard/modules/main_hall_goten.tscn" id="4"]
+[ext_resource type="PackedScene" path="res://environment/courtyard/modules/barracks_nagaya.tscn" id="5"]
+[ext_resource type="PackedScene" path="res://environment/courtyard/modules/storehouse_kura.tscn" id="6"]
+[ext_resource type="PackedScene" path="res://environment/courtyard/modules/castle_keep_tenshu.tscn" id="7"]
+[ext_resource type="PackedScene" path="res://environment/courtyard/modules/bridge_arched_taikobashi.tscn" id="8"]
+[ext_resource type="PackedScene" path="res://environment/courtyard/modules/bridge_stone_slab.tscn" id="9"]
+[ext_resource type="PackedScene" path="res://environment/courtyard/props/stone_lantern_toro_2m.tscn" id="10"]
+[ext_resource type="PackedScene" path="res://environment/courtyard/props/tree_pine_kuromatsu.tscn" id="11"]
+[ext_resource type="PackedScene" path="res://environment/courtyard/props/tree_maple_momiji.tscn" id="12"]
+[ext_resource type="PackedScene" path="res://environment/courtyard/props/tree_sakura.tscn" id="13"]
+[ext_resource type="PackedScene" path="res://environment/courtyard/props/rock_formation_large.tscn" id="14"]
+[ext_resource type="PackedScene" path="res://environment/courtyard/props/rock_medium.tscn" id="15"]
+[ext_resource type="PackedScene" path="res://environment/courtyard/props/rock_small_cluster.tscn" id="16"]
+[ext_resource type="PackedScene" path="res://environment/courtyard/props/shrub_azalea.tscn" id="17"]
+[ext_resource type="PackedScene" path="res://environment/courtyard/modules/pond_edge_stones_2m.tscn" id="18"]
+
+
+[node name="PrefabGallery" type="Node3D"]
+
+[node name="wall_segment_4m" parent="." instance=ExtResource("1")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4, 0, 0)
+
+[node name="corner_turret" parent="." instance=ExtResource("2")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 12, 0, 0)
+
+[node name="main_gate_yaguramon" parent="." instance=ExtResource("3")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 26, 0, 0)
+
+[node name="main_hall_goten" parent="." instance=ExtResource("4")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 48, 0, 0)
+
+[node name="barracks_nagaya" parent="." instance=ExtResource("5")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 74, 0, 0)
+
+[node name="storehouse_kura" parent="." instance=ExtResource("6")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 92, 0, 0)
+
+[node name="castle_keep_tenshu" parent="." instance=ExtResource("7")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 113, 0, 0)
+
+[node name="bridge_arched_taikobashi" parent="." instance=ExtResource("8")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 136.5, 0, 0)
+
+[node name="bridge_stone_slab" parent="." instance=ExtResource("9")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 150.5, 0, 0)
+
+[node name="stone_lantern_toro_2m" parent="." instance=ExtResource("10")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 158.415, 0, 0)
+
+[node name="tree_pine_kuromatsu" parent="." instance=ExtResource("11")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 163.83, 0, 0)
+
+[node name="tree_maple_momiji" parent="." instance=ExtResource("12")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 171.33, 0, 0)
+
+[node name="tree_sakura" parent="." instance=ExtResource("13")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 178.83, 0, 0)
+
+[node name="rock_formation_large" parent="." instance=ExtResource("14")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 185.33, 0, 0)
+
+[node name="rock_medium" parent="." instance=ExtResource("15")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 189.58, 0, 0)
+
+[node name="rock_small_cluster" parent="." instance=ExtResource("16")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 192.73, 0, 0)
+
+[node name="shrub_azalea" parent="." instance=ExtResource("17")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 195.93, 0, 0)
+
+[node name="pond_edge_stones_2m" parent="." instance=ExtResource("18")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 199.73, 0, 0)
+
+[node name="Sun" type="DirectionalLight3D" parent="."]
+rotation = Vector3(-0.85, 0.65, 0)
+shadow_enabled = true

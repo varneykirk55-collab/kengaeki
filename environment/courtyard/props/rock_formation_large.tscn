@@ -4,17 +4,17 @@
 [ext_resource type="Material" path="res://environment/courtyard/materials/gb_stone.tres" id="2"]
 
 [sub_resource type="SphereMesh" id="SphereMesh_1"]
-radius = 0.9
-height = 1.1
+radius = 1.5
+height = 2
 radial_segments = 12
 rings = 6
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_2"]
-size = Vector3(1.5, 0.9, 1.3)
+size = Vector3(2.6, 1.8, 2.1)
 
-[node name="rock_large" type="Node3D"]
+[node name="rock_formation_large" type="Node3D"]
 script = ExtResource("1")
-model_path = "res://environment/courtyard/assets/Landscape/garden_rock_large/garden_rock_large.glb"
+model_path = "res://environment/courtyard/assets/Rocks/rock_formation_large/rock_formation_large.glb"
 
 [node name="Graybox" type="Node3D" parent="."]
 
@@ -23,10 +23,10 @@ collision_layer = 1
 collision_mask = 0
 
 [node name="Body" type="MeshInstance3D" parent="Graybox"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.45, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
 mesh = SubResource("SphereMesh_1")
 material_override = ExtResource("2")
 
 [node name="Shape" type="CollisionShape3D" parent="Collision"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.45, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
 shape = SubResource("BoxShape3D_2")

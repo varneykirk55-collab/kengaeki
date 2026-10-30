@@ -1,0 +1,68 @@
+[gd_scene load_steps=12 format=3]
+
+[ext_resource type="Script" path="res://environment/courtyard/scripts/courtyard_prop.gd" id="1"]
+[ext_resource type="Material" path="res://environment/courtyard/materials/gb_stone.tres" id="2"]
+[ext_resource type="Material" path="res://environment/courtyard/materials/gb_plaster.tres" id="3"]
+[ext_resource type="Material" path="res://environment/courtyard/materials/gb_tile.tres" id="4"]
+
+[sub_resource type="BoxMesh" id="BoxMesh_1"]
+size = Vector3(30, 8, 22)
+
+[sub_resource type="BoxMesh" id="BoxMesh_2"]
+size = Vector3(24, 5, 17)
+
+[sub_resource type="BoxMesh" id="BoxMesh_3"]
+size = Vector3(26, 1, 19)
+
+[sub_resource type="BoxMesh" id="BoxMesh_4"]
+size = Vector3(18, 5, 13)
+
+[sub_resource type="BoxMesh" id="BoxMesh_5"]
+size = Vector3(20, 1, 15)
+
+[sub_resource type="BoxMesh" id="BoxMesh_6"]
+size = Vector3(12, 5, 9)
+
+[sub_resource type="BoxMesh" id="BoxMesh_7"]
+size = Vector3(14, 1, 11)
+
+[node name="castle_keep_tenshu" type="Node3D"]
+script = ExtResource("1")
+model_path = "res://environment/courtyard/assets/Architecture/castle_keep_tenshu/castle_keep_tenshu.glb"
+
+[node name="Graybox" type="Node3D" parent="."]
+
+[node name="Base" type="MeshInstance3D" parent="Graybox"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 4, 0)
+mesh = SubResource("BoxMesh_1")
+material_override = ExtResource("2")
+
+[node name="Tier0" type="MeshInstance3D" parent="Graybox"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 10.5, 0)
+mesh = SubResource("BoxMesh_2")
+material_override = ExtResource("3")
+
+[node name="Roof0" type="MeshInstance3D" parent="Graybox"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 13.5, 0)
+mesh = SubResource("BoxMesh_3")
+material_override = ExtResource("4")
+
+[node name="Tier1" type="MeshInstance3D" parent="Graybox"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 17, 0)
+mesh = SubResource("BoxMesh_4")
+material_override = ExtResource("3")
+
+[node name="Roof1" type="MeshInstance3D" parent="Graybox"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 20, 0)
+mesh = SubResource("BoxMesh_5")
+material_override = ExtResource("4")
+
+[node name="Tier2" type="MeshInstance3D" parent="Graybox"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 23.5, 0)
+mesh = SubResource("BoxMesh_6")
+material_override = ExtResource("3")
+
+[node name="Roof2" type="MeshInstance3D" parent="Graybox"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 26.5, 0)
+mesh = SubResource("BoxMesh_7")
+material_override = ExtResource("4")
