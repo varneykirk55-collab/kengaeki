@@ -10,6 +10,13 @@ and SFX.
 
 ## Launching
 
+> **Player character.** The player uses the AccuRIG samurai from
+> `assets/models/kengeki/kengeki_character_animated.glb`. That GLB is a private asset and is
+> **not in git**; copy it from `Kengeki/assets/animation_pipeline_output/` before opening the
+> project (see [docs/CHARACTER_INTEGRATION.md](docs/CHARACTER_INTEGRATION.md)). The committed
+> `release/KENGEKI-windows-x86_64.zip` is the earlier placeholder-character build; the
+> integrated build is produced locally and kept out of the repository with the asset.
+
 **Windows build:** unzip `release/KENGEKI-windows-x86_64.zip` and run `KENGEKI.exe`. It is a
 single file with the game data embedded. It has not been launched on Windows. See
 [Testing](docs/IMPLEMENTATION_REPORT.md#4-testing) for what was verified.
@@ -44,6 +51,8 @@ encounter. When you die you can **Restart** (same enemy count) or **Return to ar
 | Heavy attack | Right mouse or R | Y / △ |
 | Block (hold) / **parry** (tap just before a hit) | F or Ctrl (or mouse button 4) | LB / L1 |
 | Dodge (in move direction) | Space | B / ○ |
+| Jump | C | A / ✕ |
+| Draw / sheathe katana | E (attacking or blocking while sheathed draws first) | D-pad up |
 | Lock-on toggle | Q or middle mouse | R3 |
 | Switch target | Tab, or flick the mouse while locked | RB / R1 |
 | Encounter menu | Esc or M | Start |
@@ -71,6 +80,7 @@ encounter. When you die you can **Restart** (same enemy count) or **Return to ar
 * [Implementation report, test results and known limitations](docs/IMPLEMENTATION_REPORT.md)
 * [Asset integration guide: replacing placeholders with Hunyuan assets](docs/ASSET_INTEGRATION.md)
 * [Audio guide: categories, file locations and what is a placeholder](docs/AUDIO.md)
+* [Character integration: AccuRIG samurai, animations, root motion, katana](docs/CHARACTER_INTEGRATION.md)
 
 ## Project layout
 

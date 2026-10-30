@@ -13,6 +13,8 @@ const KEY_BINDINGS := {
 	"lock_on": [KEY_Q],
 	"switch_target": [KEY_TAB],
 	"toggle_menu": [KEY_ESCAPE, KEY_M],
+	"jump": [KEY_C],
+	"toggle_sword": [KEY_E],
 	"light_attack": [],
 	"heavy_attack": [KEY_R],
 }
@@ -35,6 +37,8 @@ const JOY_BUTTONS := {
 	"switch_target": [JOY_BUTTON_RIGHT_SHOULDER],
 	"sprint": [JOY_BUTTON_LEFT_STICK],
 	"toggle_menu": [JOY_BUTTON_START],
+	"jump": [JOY_BUTTON_A],
+	"toggle_sword": [JOY_BUTTON_DPAD_UP],
 }
 
 const JOY_AXES := {

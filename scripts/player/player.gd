@@ -8,7 +8,8 @@ signal lock_target_changed(target: Combatant)
 signal player_died
 signal player_revived
 
-enum State { MOVE, ATTACK, BLOCK, DODGE, HITSTUN, DEAD }
+## EQUIP = drawing or sheathing the katana (can still walk). AIRBORNE = jumping.
+enum State { MOVE, ATTACK, BLOCK, DODGE, HITSTUN, DEAD, EQUIP, AIRBORNE }
 
 @export_group("Movement")
 @export var walk_speed: float = 4.6
@@ -29,6 +30,19 @@ enum State { MOVE, ATTACK, BLOCK, DODGE, HITSTUN, DEAD }
 @export var dodge_stamina: float = 18.0
 ## After this much of the dodge, attacks / another dodge may cut in.
 @export var dodge_cancel_time: float = 0.3
+
+@export_group("Jump")
+## Take-off speed. With gravity 22 this gives ~0.8 m of height and ~0.55 s in the air,
+## matching the airborne section of the Jump clip at the character's scale.
+@export var jump_velocity: float = 6.0
+## Fraction of ground acceleration available in the air.
+@export var air_control: float = 0.35
+@export var jump_stamina: float = 8.0
+
+@export_group("Katana")
+## Draw / sheathe walking speed (sprinting is not possible with the hands busy).
+@export var equip_move_speed: float = 3.0
+@export var start_sword_drawn: bool = true
 
 @export_group("Reactions")
 @export var hitstun_by_power: Array[float] = [0.22, 0.38, 0.65, 1.0]
@@ -54,6 +68,14 @@ var _attack_target: Combatant
 var _lunge_left := 0.0
 var _last_flick := -100.0
 
+var sword_drawn := true
+var _equip_target := true
+var _equip_duration := 0.0
+var _equip_completing := false
+var _jump_requested_at := -100.0
+var _launch_pending := false
+var _airborne := false
+
 @onready var combat: PlayerCombat = $Combat
 
 
@@ -64,6 +86,8 @@ func _ready() -> void:
 	spawn_transform = global_transform
 	attack_runner.finished.connect(_on_attack_finished)
 	visual.footstep.connect(_on_footstep)
+	sword_drawn = start_sword_drawn
+	visual.set_sword_drawn(sword_drawn)
 
 
 # --- Input -------------------------------------------------------------------------
@@ -78,7 +102,13 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif event.is_action_pressed(&"dodge"):
 		_dodge_requested_at = game_time
 	elif event.is_action_pressed(&"block"):
-		combat.on_block_pressed()
+		if sword_drawn:
+			combat.on_block_pressed()  # no parry window with the katana in its sheath
+	elif event.is_action_pressed(&"jump"):
+		_jump_requested_at = game_time
+	elif event.is_action_pressed(&"toggle_sword"):
+		if state == State.MOVE:
+			_start_equip(not sword_drawn)
 	elif event.is_action_pressed(&"lock_on"):
 		toggle_lock_on()
 	elif event.is_action_pressed(&"switch_target"):
@@ -143,6 +173,10 @@ func _physics_process(delta: float) -> void:
 				_set_state(State.MOVE)
 		State.DEAD:
 			pass
+		State.EQUIP:
+			desired = _update_equip(delta, move_dir)
+		State.AIRBORNE:
+			desired = _update_airborne(delta, move_dir)
 
 	attack_runner.tick(delta)
 	stamina.blocking = state == State.BLOCK
@@ -152,12 +186,25 @@ func _physics_process(delta: float) -> void:
 		horizontal = desired
 	else:
 		var rate := acceleration if desired.length() > horizontal.length() else deceleration
+		if _airborne:
+			rate *= air_control
 		horizontal = horizontal.move_toward(desired, rate * delta)
 	horizontal += _decay_knockback(delta)
 	velocity.x = horizontal.x
 	velocity.z = horizontal.z
-	velocity.y = 0.0 if is_on_floor() else velocity.y - gravity * delta
+	if _launch_pending:
+		_launch_pending = false
+		velocity.y = jump_velocity  # upward velocity also suppresses floor snapping
+	elif is_on_floor():
+		velocity.y = 0.0
+	else:
+		velocity.y -= gravity * delta
 	move_and_slide()
+	if _airborne and velocity.y <= 0.0 and is_on_floor():
+		_airborne = false
+		visual.play_land()
+		if state == State.AIRBORNE:
+			_set_state(State.MOVE)
 
 	var local_vel := global_transform.basis.inverse() * Vector3(velocity.x, 0, velocity.z)
 	visual.set_locomotion(local_vel, sprint_speed if Input.is_action_pressed(&"sprint") else walk_speed)
@@ -168,12 +215,20 @@ func _set_state(new_state: int) -> void:
 	if state == new_state:
 		state_time = 0.0
 		return
+	if state == State.EQUIP and not _equip_completing:
+		# Interrupted (dodge, hit, death): the katana stays where it was before the action.
+		visual.set_sword_drawn(sword_drawn)
 	state = new_state
 	state_time = 0.0
 	state_changed.emit(state)
 
 
 func _update_move(delta: float, move_dir: Vector3) -> Vector3:
+	if not sword_drawn and (_block_held() or combat.has_buffered_attack()):
+		# Attack / block with the katana sheathed draws it first. A buffered attack is kept
+		# and fires as soon as the blade is out; a held block becomes a guard.
+		_start_equip(true)
+		return _update_equip(delta, move_dir)
 	if _block_held():
 		_set_state(State.BLOCK)
 		return Vector3.ZERO
@@ -181,6 +236,8 @@ func _update_move(delta: float, move_dir: Vector3) -> Vector3:
 		return _update_dodge(0.0)
 	if combat.has_buffered_attack() and _try_attack(combat.combo_alive()):
 		return Vector3.ZERO
+	if _jump_pending() and _try_jump(move_dir):
+		return _update_airborne(delta, move_dir)
 	var speed := walk_speed
 	var sprinting := Input.is_action_pressed(&"sprint") and move_dir.length() > 0.1 and stamina.current > 1.0
 	if sprinting:
@@ -192,6 +249,73 @@ func _update_move(delta: float, move_dir: Vector3) -> Vector3:
 		face_point(lock_target.global_position, turn_speed * delta)
 	elif move_dir.length() > 0.1:
 		face_direction(move_dir, turn_speed * delta)
+	return move_dir * speed
+
+
+# --- Katana draw / sheathe and jump ------------------------------------------------
+
+var _pending_attack: StringName = &""
+
+
+func _start_equip(draw: bool) -> void:
+	if draw == sword_drawn:
+		return
+	_equip_target = draw
+	_pending_attack = combat.buffered if draw and combat.has_buffered_attack() else &""
+	combat.clear_buffer()
+	_equip_duration = visual.play_sword_equip(draw)
+	_set_state(State.EQUIP)
+
+
+func _update_equip(delta: float, move_dir: Vector3) -> Vector3:
+	if state != State.EQUIP:
+		return Vector3.ZERO
+	if _dodge_pending() and _try_dodge(move_dir):
+		return _update_dodge(0.0)
+	if state_time >= _equip_duration:
+		sword_drawn = _equip_target
+		_equip_completing = true
+		_set_state(State.MOVE)
+		_equip_completing = false
+		if _pending_attack != &"":
+			combat.buffer_attack(_pending_attack)  # draw-attack: the press made while sheathed
+			_pending_attack = &""
+		return Vector3.ZERO
+	if combat.has_buffered_attack():
+		_pending_attack = combat.buffered  # pressed again while drawing: keep the latest
+		combat.clear_buffer()
+	if _has_lock():
+		face_point(lock_target.global_position, turn_speed * delta)
+	elif move_dir.length() > 0.1:
+		face_direction(move_dir, turn_speed * delta)
+	return move_dir * equip_move_speed
+
+
+func _jump_pending() -> bool:
+	return game_time - _jump_requested_at <= 0.15
+
+
+func _try_jump(move_dir: Vector3) -> bool:
+	_jump_requested_at = -100.0
+	if not is_on_floor() or not stamina.try_consume(jump_stamina):
+		return false
+	_launch_pending = true
+	_airborne = true
+	_set_state(State.AIRBORNE)
+	if move_dir.length() > 0.1 and not _has_lock():
+		face_direction(move_dir, 1.0)
+	visual.play_jump(2.0 * jump_velocity / gravity)
+	AudioManager.play_sfx(&"dodge", global_position + Vector3.UP * 0.5, -6.0)
+	return true
+
+
+func _update_airborne(delta: float, move_dir: Vector3) -> Vector3:
+	if state != State.AIRBORNE:
+		return Vector3.ZERO
+	# Keep momentum; steer gently (see air_control). Landing is handled after move_and_slide.
+	var speed := sprint_speed if Input.is_action_pressed(&"sprint") else walk_speed
+	if move_dir.length() > 0.1 and not _has_lock():
+		face_direction(move_dir, turn_speed * 0.5 * delta)
 	return move_dir * speed
 
 
@@ -396,6 +520,11 @@ func revive(at: Transform3D = spawn_transform) -> void:
 	set_lock_target(null)
 	visual.reset_pose()
 	_set_state(State.MOVE)
+	_airborne = false
+	_launch_pending = false
+	_pending_attack = &""
+	sword_drawn = start_sword_drawn
+	visual.set_sword_drawn(sword_drawn)
 	player_revived.emit()
 
 

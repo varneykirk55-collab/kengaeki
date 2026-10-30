@@ -49,6 +49,9 @@ func run_all() -> void:
 		test_ai_duel, test_sequential_spawning, test_group_coordination, test_attacker_limit_configurable,
 		test_player_defeats_group, test_clear_cancels_queue, test_repeated_spawn_clear,
 		test_menu_buttons, test_death_and_restart, test_imported_visual_pipeline,
+		test_character_asset, test_character_root_motion_in_place, test_character_locomotion_states,
+		test_character_attack_sync, test_character_attack_sync_segments, test_jump, test_sword_draw_and_sheathe, test_sheathed_attack_draws,
+		test_character_reset_after_death,
 	]
 	var only := OS.get_environment("KENGEKI_TEST")
 	for t in tests:
@@ -106,7 +109,7 @@ func tap(action: StringName) -> void:
 
 
 func release_all() -> void:
-	for a in [&"move_forward", &"move_back", &"move_left", &"move_right", &"sprint", &"block", &"light_attack", &"heavy_attack", &"dodge"]:
+	for a in [&"move_forward", &"move_back", &"move_left", &"move_right", &"sprint", &"block", &"light_attack", &"heavy_attack", &"dodge", &"jump", &"toggle_sword"]:
 		Input.action_release(a)
 
 
@@ -118,6 +121,8 @@ func reset_world() -> void:
 	encounter.reset_encounter()
 	encounter.max_active_attackers = 2
 	CombatManager.player_god_mode = false
+	if player.state in [Player.State.EQUIP, Player.State.AIRBORNE] or not player.sword_drawn:
+		player.revive(Transform3D(Basis(), Vector3(0, 0.05, 0)))
 	player.input_enabled = true
 	player.global_position = Vector3(0, 0.05, 0)
 	player.rotation = Vector3.ZERO
@@ -744,3 +749,219 @@ func test_imported_visual_pipeline() -> void:
 	check(results_against(player).size() == 1, "import pipeline: animation-timed strike resolves through combat")
 	await seconds(0.6)
 	check(not e.attack_runner.is_running(), "import pipeline: attack_end event finishes the attack")
+
+
+# --- Kengeki character integration -------------------------------------------------------
+
+func _kvis() -> KengekiCharacterVisual:
+	return player.visual as KengekiCharacterVisual
+
+
+func _bone_world(bone: String) -> Vector3:
+	var sk := _kvis().skeleton
+	return sk.global_transform * sk.get_bone_global_pose(sk.find_bone(bone)).origin
+
+
+func _katana_bone() -> StringName:
+	var a := player.weapon.katana.get_parent() as BoneAttachment3D
+	return a.bone_name if a else &""
+
+
+func test_character_asset() -> void:
+	var v := _kvis()
+	check(v != null and v.model != null and v.skeleton != null, "character: AccuRIG model and skeleton loaded as the player visual")
+	if v == null or v.model == null:
+		return
+	var clips := ["Idle_Unarmed", "Walk", "Run", "Jump", "Sword_Draw", "Sword_Sheathe", "Sword_Combo_OneHand"]
+	var missing := clips.filter(func(c): return not v.anim_player.has_animation(c))
+	check(missing.is_empty(), "character: all seven clips present (missing %s)" % [missing])
+	check(v.anim_tree != null and v.anim_tree.active and str(v.anim_tree.root_motion_track) == "Kengeki_Rig/Skeleton3D:RL_BoneRoot", "character: AnimationTree active, root motion track RL_BoneRoot")
+	check(v.model.find_children("*", "Skeleton3D", true, false).size() == 1, "character: exactly one skeleton")
+	var katanas := player.find_children("*", "", true, false).filter(func(n): return n is Katana)
+	check(katanas.size() == 1 and player.weapon.katana == katanas[0], "character: exactly one katana, wired to the weapon component")
+	check(_katana_bone() == &"CC_Base_R_Hand", "character: katana held in the right hand bone")
+	var mi := v.model.find_children("*", "MeshInstance3D", true, false)[0] as MeshInstance3D
+	var mat := mi.mesh.surface_get_material(0) as BaseMaterial3D
+	check(mat != null and mat.albedo_texture != null and mat.normal_texture != null, "character: material keeps albedo and normal textures")
+	var head := _bone_world("CC_Base_Head").y - player.global_position.y
+	check(head > 1.35 and head < 1.65, "character: scaled to the 1.8 m capsule (head bone at %.2f m)" % head)
+	var to_toe := _bone_world("CC_Base_R_ToeBase") - _bone_world("CC_Base_R_Foot")
+	to_toe.y = 0.0
+	check(to_toe.normalized().dot(player.get_forward()) > 0.7, "character: model faces the gameplay forward direction")
+
+
+func test_character_root_motion_in_place() -> void:
+	# Walk, sprint and loop several cycles: the hips must stay over the capsule (root motion
+	# extracted, not applied) and never jump between frames (no snap-back on loop).
+	var v := _kvis()
+	var max_offset := 0.0
+	var max_jump := 0.0
+	var prev := Vector3.INF
+	press(&"move_forward")
+	for i in 150:
+		if i == 60:
+			press(&"sprint")
+		await frames(1)
+		var hip := _bone_world("CC_Base_Hip") - player.global_position
+		hip.y = 0.0
+		hip = player.global_transform.basis.inverse() * hip
+		max_offset = maxf(max_offset, hip.length())
+		if prev != Vector3.INF:
+			max_jump = maxf(max_jump, hip.distance_to(prev))
+		prev = hip
+	release(&"sprint")
+	release(&"move_forward")
+	var root := v.skeleton.get_bone_pose_position(v.skeleton.find_bone("RL_BoneRoot"))
+	check(max_offset < 0.35, "root motion: hips stay over the body while walking/sprinting (max %.2f m)" % max_offset)
+	check(max_jump < 0.08, "root motion: no snapping between frames across loops (max %.3f m)" % max_jump)
+	check(Vector2(root.x, root.z).length() < 0.01 and absf(root.y) < 0.01, "root motion: RL_BoneRoot travel not applied to the skeleton (%s)" % root)
+
+
+func test_character_locomotion_states() -> void:
+	var v := _kvis()
+	await seconds(0.3)
+	check(String(v.anim_tree.get("parameters/loco/current_state")) == "idle", "locomotion: idle when standing")
+	press(&"move_forward")
+	await seconds(0.5)
+	check(String(v.anim_tree.get("parameters/loco/current_state")) == "walk", "locomotion: walk when moving")
+	press(&"sprint")
+	await seconds(0.6)
+	check(String(v.anim_tree.get("parameters/loco/current_state")) == "run", "locomotion: run when sprinting")
+	# The locomotion clip must keep playing, not restart every frame.
+	var hand_a := player.global_transform.basis.inverse() * (_bone_world("CC_Base_L_Hand") - player.global_position)
+	await frames(6)
+	var hand_b := player.global_transform.basis.inverse() * (_bone_world("CC_Base_L_Hand") - player.global_position)
+	check(hand_a.distance_to(hand_b) > 0.03, "locomotion: run cycle advances (arm moved %.2f m)" % hand_a.distance_to(hand_b))
+	release(&"sprint")
+	release(&"move_forward")
+	await seconds(0.8)
+	check(String(v.anim_tree.get("parameters/loco/current_state")) == "idle", "locomotion: back to idle after stopping")
+
+
+func test_character_attack_sync() -> void:
+	# The fastest point of the right hand during Light Cut I must fall inside the hit window.
+	make_enemy(Vector3(0, 0, -1.8), false, 1000.0)
+	await frames(5)
+	await tap(&"light_attack")
+	var best_speed := 0.0
+	var best_phase := -1
+	var prev := player.global_transform.basis.inverse() * (_bone_world("CC_Base_R_Hand") - player.global_position)
+	var weights: Array[float] = []
+	for i in 40:
+		await frames(1)
+		var cur := player.global_transform.basis.inverse() * (_bone_world("CC_Base_R_Hand") - player.global_position)
+		var spd := cur.distance_to(prev) * 60.0
+		weights.append(_kvis().anim_tree.get("parameters/full/blend_amount"))
+		if spd > best_speed and player.attack_runner.is_running():
+			best_speed = spd
+			best_phase = player.attack_runner.phase
+		prev = cur
+	check(weights.max() > 0.95, "attack: combo clip drives the full body during the swing")
+	check(best_phase == AttackRunner.Phase.ACTIVE, "attack: fastest hand motion lands in the hit window (phase %d, %.1f m/s)" % [best_phase, best_speed])
+	await seconds(0.6)
+	check(_kvis().anim_tree.get("parameters/full/blend_amount") < 0.05, "attack: control returns to locomotion afterwards")
+
+
+func test_jump() -> void:
+	var v := _kvis()
+	var y0 := player.global_position.y
+	var peak := y0
+	var max_foot_gap := 0.0
+	await tap(&"jump")
+	await frames(2)
+	check(player.state == Player.State.AIRBORNE, "jump: C / A launches the player")
+	for i in 60:
+		await frames(1)
+		peak = maxf(peak, player.global_position.y)
+		if player.state == Player.State.AIRBORNE:
+			var foot := minf(_bone_world("CC_Base_L_Foot").y, _bone_world("CC_Base_R_Foot").y) - player.global_position.y
+			max_foot_gap = maxf(max_foot_gap, foot)
+	check(peak - y0 > 0.6 and peak - y0 < 1.1, "jump: rises %.2f m" % (peak - y0))
+	check(max_foot_gap < 0.3, "jump: clip lift compensated, feet stay with the body (max %.2f m above it)" % max_foot_gap)
+	check(player.state == Player.State.MOVE and player.is_on_floor(), "jump: lands and returns to normal movement")
+	await seconds(1.2)
+	check(v.model.position.y == 0.0 and v.anim_tree.get("parameters/full/blend_amount") < 0.05, "jump: landing settles back to locomotion")
+
+
+func test_sword_draw_and_sheathe() -> void:
+	var v := _kvis()
+	await tap(&"toggle_sword")
+	await frames(2)
+	check(player.state == Player.State.EQUIP, "sheathe: E starts sheathing")
+	press(&"move_forward")
+	await seconds(0.4)
+	check(Vector2(player.velocity.x, player.velocity.z).length() > 1.5, "sheathe: player can keep walking while sheathing")
+	check(v.anim_tree.get("parameters/upper_blend/blend_amount") > 0.9, "sheathe: upper-body layer plays Sword_Sheathe")
+	release(&"move_forward")
+	await seconds(0.8)
+	check(not player.sword_drawn and player.state == Player.State.MOVE, "sheathe: katana sheathed, control restored")
+	check(_katana_bone() == &"CC_Base_Hip", "sheathe: katana moved to the hip")
+	await tap(&"toggle_sword")
+	await seconds(0.3)
+	check(_katana_bone() == &"CC_Base_Hip", "draw: katana still at the hip before the grab")
+	await seconds(0.6)
+	check(player.sword_drawn and _katana_bone() == &"CC_Base_R_Hand", "draw: katana back in the right hand")
+	var katanas := player.find_children("*", "", true, false).filter(func(n): return n is Katana)
+	check(katanas.size() == 1, "draw/sheathe: still exactly one katana")
+
+
+func test_sheathed_attack_draws() -> void:
+	var e := make_enemy(Vector3(0, 0, -1.8), false, 1000.0)
+	await tap(&"toggle_sword")
+	await seconds(1.2)
+	check(not player.sword_drawn, "sheathed: precondition (katana sheathed)")
+	await tap(&"light_attack")
+	await frames(3)
+	check(player.state == Player.State.EQUIP and attack_log.is_empty(), "sheathed: attack input draws the katana first")
+	await seconds(1.3)
+	check(player.sword_drawn and attack_log.has(&"light_1"), "sheathed: the attack fires once the katana is out (%s)" % [attack_log])
+	check(results_against(e).size() >= 1, "sheathed: draw-attack still hits through the combat pipeline")
+
+
+func test_character_reset_after_death() -> void:
+	await tap(&"toggle_sword")
+	await seconds(0.3)
+	player.health.take_damage(1000)
+	await seconds(1.5)
+	var fallen: float = _kvis()._pose_root.rotation_degrees.x
+	check(fallen > 60.0, "death: body falls (%.0f deg)" % fallen)
+	player.revive()
+	await seconds(0.4)
+	check(absf(_kvis()._pose_root.rotation_degrees.x) < 2.0 and player.sword_drawn and _katana_bone() == &"CC_Base_R_Hand", "restart: pose reset and katana back in hand")
+	main.death_screen.visible = false
+
+
+## For each swing segment of the combo clip (A light I, B light II, C overhead), the hand's
+## fastest motion during that attack must fall inside its hit window.
+func test_character_attack_sync_segments() -> void:
+	make_enemy(Vector3(0, 0, -1.8), false, 5000.0)
+	await frames(5)
+	var best := {}  # attack id -> [speed, phase]
+	var prev := Vector3.INF
+	await tap(&"light_attack")
+	for i in 75:
+		if i == 16:
+			await tap(&"light_attack")  # buffered into Light Cut II
+		await frames(1)
+		var cur := player.global_transform.basis.inverse() * (_bone_world("CC_Base_R_Hand") - player.global_position)
+		if prev != Vector3.INF and player.attack_runner.is_running():
+			var id: StringName = player.attack_runner.attack.id
+			var spd := cur.distance_to(prev) * 60.0
+			if spd > best.get(id, [0.0, -1])[0]:
+				best[id] = [spd, player.attack_runner.phase]
+		prev = cur
+	await seconds(0.6)
+	prev = Vector3.INF
+	await tap(&"heavy_attack")
+	for i in 60:
+		await frames(1)
+		var cur := player.global_transform.basis.inverse() * (_bone_world("CC_Base_R_Hand") - player.global_position)
+		if prev != Vector3.INF and player.attack_runner.is_running():
+			var id: StringName = player.attack_runner.attack.id
+			var spd := cur.distance_to(prev) * 60.0
+			if spd > best.get(id, [0.0, -1])[0]:
+				best[id] = [spd, player.attack_runner.phase]
+		prev = cur
+	for id in [&"light_1", &"light_2", &"heavy_1"]:
+		var b: Array = best.get(id, [0.0, -1])
+		check(b[1] == AttackRunner.Phase.ACTIVE, "attack sync %s: fastest hand motion in the hit window (phase %d, %.1f m/s)" % [id, b[1], b[0]])

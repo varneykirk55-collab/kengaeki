@@ -60,6 +60,26 @@ func reset_pose() -> void:
 	pass
 
 
+## Draw (true) or sheathe (false) the katana. Returns how long the action takes in seconds;
+## 0 means the visual has no equip animation and the change is instant.
+func play_sword_equip(_drawn: bool) -> float:
+	return 0.0
+
+
+## Instantly puts the katana in the hand (true) or at the hip (false), e.g. after a cancel.
+func set_sword_drawn(_drawn: bool) -> void:
+	pass
+
+
+## Jump take-off. expected_air_time lets the visual stretch its airborne section to match.
+func play_jump(_expected_air_time: float) -> void:
+	pass
+
+
+func play_land() -> void:
+	pass
+
+
 ## Method-track target for imported animations.
 func emit_animation_event(event_name: StringName) -> void:
 	if event_name == &"footstep":

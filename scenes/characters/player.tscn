@@ -6,7 +6,7 @@
 [ext_resource type="Script" path="res://scripts/components/weapon_component.gd" id="4_weapon"]
 [ext_resource type="Script" path="res://scripts/combat/attack_runner.gd" id="5_runner"]
 [ext_resource type="Script" path="res://scripts/player/player_combat.gd" id="6_combat"]
-[ext_resource type="PackedScene" path="res://scenes/characters/samurai_visual_placeholder.tscn" id="7_visual"]
+[ext_resource type="PackedScene" path="res://scenes/characters/kengeki_samurai_visual.tscn" id="7_visual"]
 
 [sub_resource type="CapsuleShape3D" id="Capsule_1"]
 radius = 0.38

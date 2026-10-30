@@ -4,3 +4,12 @@ export_presets.cfg.bak
 /build/
 *.tmp
 /KENGEKI-project-source.zip
+
+# Private character asset (copied from Kengeki/assets/animation_pipeline_output). Kept out of
+# the public repository; see docs/CHARACTER_INTEGRATION.md for how to restore it.
+/assets/models/kengeki/*.glb
+/assets/models/kengeki/*.glb.import
+/assets/models/kengeki/*.png
+/assets/models/kengeki/*.png.import
+/assets/models/kengeki/*.jpg
+/assets/models/kengeki/*.jpg.import

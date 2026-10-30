@@ -61,7 +61,7 @@ func _ready() -> void:
 	_technique.size = Vector2(600, 30)
 	add_child(_technique)
 
-	var hint := UIStyle.label("WASD move · Shift sprint · LMB light · RMB/R heavy · F/Ctrl block (tap = parry) · Space dodge · Q lock-on · Tab switch · Esc encounter menu", 13, UIStyle.MUTED)
+	var hint := UIStyle.label("WASD move · Shift sprint · LMB light · RMB/R heavy · F/Ctrl block (tap = parry) · Space dodge · C jump · E draw/sheathe · Q lock-on · Tab switch · Esc encounter menu", 13, UIStyle.MUTED)
 	hint.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
 	hint.position = Vector2(32, -40)
 	add_child(hint)
