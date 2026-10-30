@@ -12,6 +12,7 @@ rings = 6
 [node name="rock_small_cluster" type="Node3D"]
 script = ExtResource("1")
 model_path = "res://environment/courtyard/assets/Rocks/rock_small_cluster/rock_small_cluster.glb"
+authored_size = Vector3(0.8, 0.4, 0.6)
 
 [node name="Graybox" type="Node3D" parent="."]
 

@@ -12,3 +12,8 @@ build box (not legal advice; some terms are still unverified there).
 | Asset | Generator | Post-processing |
 |---|---|---|
 | `Decorations/stone_lantern_toro` | Tencent Hunyuan 3D (AI-generated) | BJORN pipeline: 50,012 → 25,000 tris, 3 × 2048² textures, scaled to 2.0 m |
+| `Decorations/stone_lantern_toro` (`stone_lantern_toro_lod8k.glb`) | Tencent Hunyuan 3D (AI-generated) | BJORN pipeline: 50,012 → 8,000 tris, 1024² textures (JPEG albedo), scaled to 2.0 m |
+| `Courtyard/wall_segment_4m` | Tencent Hunyuan 3D (AI-generated) | BJORN pipeline: 13,134 tris, 3 × 1024² textures, 4.00 × 4.74 × 1.59 m, tiling ends checked |
+| `Courtyard/corner_turret` | Tencent Hunyuan 3D (AI-generated) | BJORN pipeline: 12,000 tris, 2048² albedo (JPEG) + 1024² data maps, 7.48 × 10.72 × 7.46 m |
+| `Courtyard/main_gate_yaguramon` | Tencent Hunyuan 3D (AI-generated) | BJORN pipeline: 20,000 tris, 2048² albedo (JPEG) + 1024² data maps, 14.67 × 10.91 × 8.00 m |
+| `Courtyard/main_hall_goten` | Tencent Hunyuan 3D (AI-generated) | BJORN pipeline: 50,004 → 25,000 tris, 2048² albedo (JPEG) + 1024² data maps, 22.93 × 9.42 × 12.00 m |

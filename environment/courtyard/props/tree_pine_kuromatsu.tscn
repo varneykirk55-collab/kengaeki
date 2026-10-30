@@ -24,6 +24,7 @@ height = 3
 [node name="tree_pine_kuromatsu" type="Node3D"]
 script = ExtResource("1")
 model_path = "res://environment/courtyard/assets/Vegetation/tree_pine_kuromatsu/tree_pine_kuromatsu.glb"
+authored_size = Vector3(6, 7, 6)
 
 [node name="Graybox" type="Node3D" parent="."]
 

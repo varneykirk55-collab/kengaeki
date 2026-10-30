@@ -36,7 +36,8 @@ height = 2
 
 [node name="stone_lantern_toro_2m" type="Node3D"]
 script = ExtResource("1")
-model_path = "res://environment/courtyard/assets/Decorations/stone_lantern_toro/stone_lantern_toro.glb"
+model_path = "res://environment/courtyard/assets/Decorations/stone_lantern_toro/stone_lantern_toro_lod8k.glb"
+authored_size = Vector3(0.83, 2, 0.92)
 
 [node name="Graybox" type="Node3D" parent="."]
 

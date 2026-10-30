@@ -193,6 +193,7 @@ func _blueprint_checks(arena: Node, map: RID, space: PhysicsDirectSpaceState3D, 
 				check(absf(ab.size.y - 2.0) < 0.1 and absf(ab.position.y) < 0.05 and ab.size.x < 1.2 and ab.size.z < 1.2,
 					"%s: lantern model ~2 m, base at origin (aabb %s)" % [n.name, ab])
 	check(lanterns == 10 and with_model == lanterns, "all %d lanterns use the real GLB (%d with model)" % [lanterns, with_model])
+	_model_checks(arena)
 	# Routes that must exist.
 	for pair in [["pond north -> south", Vector3(31, 0, -9), Vector3(31, 0, 9)],
 			["gate forecourt -> hall forecourt", Vector3(0, 0, 25), Vector3(0, 0, -25)],
@@ -202,3 +203,57 @@ func _blueprint_checks(arena: Node, map: RID, space: PhysicsDirectSpaceState3D, 
 		var route := NavigationServer3D.map_get_path(map, a, c, true)
 		check(route.size() > 0 and route[route.size() - 1].distance_to(c) < 0.6 and a.distance_to(pair[1]) < 1.0 and c.distance_to(pair[2]) < 1.0,
 			"nav route %s (%d points)" % [pair[0], route.size()])
+
+
+## Delivered GLBs (BJORN's library): per asset, every instance shows the model, its bounding box is
+## within 10% of Bill's authored size per axis (before yaw) and sits on its base (plus model_offset);
+## wall modules all share one imported mesh (instanced, not duplicated).
+func _model_checks(arena: Node) -> void:
+	var per_scene := {}
+	for n in _all(arena):
+		if n is CourtyardProp and n.authored_size != Vector3.ZERO:
+			var key := String(n.scene_file_path).get_file().get_basename()
+			if not per_scene.has(key):
+				per_scene[key] = []
+			per_scene[key].append(n)
+	for key in per_scene:
+		var nodes: Array = per_scene[key]
+		var first: CourtyardProp = nodes[0]
+		if not ResourceLoader.exists(first.model_path):
+			continue
+		var shown := 0
+		for n in nodes:
+			if n.has_model:
+				shown += 1
+		check(shown == nodes.size(), "%s: real GLB shown on %d/%d instances (%s)" % [key, shown, nodes.size(), first.model_path.get_file()])
+		if shown == 0:
+			continue
+		var ab := _holder_aabb(first)
+		var want: Vector3 = first.authored_size
+		var dev := (ab.size - want) / want * 100.0
+		check(absf(dev.x) <= 10.0 and absf(dev.y) <= 10.0 and absf(dev.z) <= 10.0,
+			"%s: model %.2f x %.2f x %.2f m vs Bill %.2f x %.2f x %.2f m (%+.1f%% %+.1f%% %+.1f%%)" % [key, ab.size.x, ab.size.y, ab.size.z, want.x, want.y, want.z, dev.x, dev.y, dev.z])
+		check(absf(ab.position.y - first.model_offset.y) < 0.05 and absf(ab.get_center().x) < 0.5 and absf(ab.get_center().z) < 0.5,
+			"%s: model base at y %.2f (offset %.2f), footprint centred (%.2f, %.2f)" % [key, ab.position.y, first.model_offset.y, ab.get_center().x, ab.get_center().z])
+	if per_scene.has("wall_segment_4m"):
+		var walls: Array = per_scene["wall_segment_4m"]
+		var meshes := {}
+		for n in walls:
+			if n.has_model:
+				for c in _all(n.get_node(^"Model")):
+					if c is MeshInstance3D:
+						meshes[(c as MeshInstance3D).mesh.get_instance_id()] = true
+		check(walls.size() == 78 and meshes.size() == 1, "wall modules: %d instances (68 Bill + 10 fillers) share %d imported mesh resource(s)" % [walls.size(), meshes.size()])
+
+
+## AABB of a prop's loaded model in the prop's own frame (graybox excluded).
+func _holder_aabb(prop: Node3D) -> AABB:
+	var out := AABB()
+	var first := true
+	for c in _all(prop.get_node(^"Model")):
+		if c is MeshInstance3D:
+			var mi := c as MeshInstance3D
+			var ab := (prop.global_transform.affine_inverse() * mi.global_transform) * mi.get_aabb()
+			out = ab if first else out.merge(ab)
+			first = false
+	return out

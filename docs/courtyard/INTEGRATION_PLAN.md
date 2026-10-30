@@ -198,3 +198,38 @@ Latest run (addendum + lantern, Oct 30, 2026, ~6:42 PM EDT):
   out of scope).
 - **Not done:** visual check (lighting, lantern look, baked AO), camera near walls, bridges and
   pond, FPS/draw calls, real play with 6–10 enemies. These need a windowed run and Kirk's eyes.
+
+## 9. BJORN batch 1 (Oct 30, 2026, integrated ~8:30 PM EDT)
+Read `library/HANDOFF.md`, `MANIFEST.json` and each asset's `stats.json` / `REPORT.md` (read only).
+Copied with `tools/courtyard/sync_assets.py --apply` (sha256 matched against stats.json, git cost
+≤ 10 MB, REPORT + MANIFEST PASS, bounding box measured with `glb_probe.py` within 10% of Bill):
+
+| Asset | Measured vs Bill (m) | Facing |
+|---|---|---|
+| wall_segment_4m | 4.00 × 4.74 × 1.59 vs 4 × 5 × 1.6 (Y −5.2%) | front/back symmetric; BJORN's tiling check TILES_CLEANLY (gap 0, overlap 0) |
+| corner_turret | 7.48 × 10.72 × 7.46 vs 8 × 10 × 8 (−6.5/+7.2/−6.7%) | symmetric square plan |
+| main_gate_yaguramon | 14.67 × 10.91 × 8.00 vs 16 × 10 × 8 (−8.3/+9.1/0%) | doors on +Z; yaw 180 puts them facing into the courtyard |
+| main_hall_goten | 22.93 × 9.42 × 12.00 vs 24 × 9 × 12 (−4.5/+4.7/0%) | veranda/steps on +Z (REPORT; candidate 3), facing the courtyard at yaw 0 |
+| stone_lantern_toro lod8k | 0.83 × 2.00 × 0.92 | unchanged; replaces the 25k file in the arena (DEVIATIONS #14) |
+
+Fit: see DEVIATIONS #13 (turret/gate gaps closed with filler modules), #15 (generous colliders),
+#16 (wall tris). No z-fighting found in the geometry: wall modules butt end to end without overlap;
+the only overlapping filler pairs sit inside the closed turret shells. The graybox fallback is kept
+in every prefab (`force_graybox`, or delete a GLB to see it).
+
+Texture imports set to VRAM-compressed with `tools/courtyard/vram_textures.py` (normal maps in
+normal-map mode). Budget (`tools/courtyard/asset_budget.py`, .ctex sizes after import):
+
+| Asset | GLB | Tris | Instances | Tris in scene | Texture VRAM (MB) | Git (MB) |
+|---|---|---|---|---|---|---|
+| corner_turret | corner_turret.glb | 12,000 | 4 | 48,000 | 4.89 | 5.48 |
+| main_gate_yaguramon | main_gate_yaguramon.glb | 20,000 | 1 | 20,000 | 4.89 | 5.12 |
+| main_hall_goten | main_hall_goten.glb | 25,000 | 1 | 25,000 | 4.89 | 6.23 |
+| stone_lantern_toro_2m | stone_lantern_toro_lod8k.glb | 8,000 | 10 | 80,000 | 2.80 | 3.54 |
+| wall_segment_4m | wall_segment_4m.glb | 13,134 | 78 | 1,024,452 | 2.80 | 5.27 |
+| **Total** | | 78,134 unique | | **1,197,452** | **20.27** | 25.63 |
+
+Headless results: Godot 4.3 `--import` exit 0 (only the dummy-renderer `Parameter "m" is null`
+noise); `check_courtyard.gd` PASS (112 checks, navmesh 376 polygons) including new per-asset checks
+(model shown on every instance, AABB within 10% of Bill, base at y 0, 78 wall instances sharing one
+mesh); gameplay tests 109 passed / 8 failed (same 8 character-GLB failures as the base).

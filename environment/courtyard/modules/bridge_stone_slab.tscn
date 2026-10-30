@@ -9,6 +9,7 @@ size = Vector3(11, 0.4, 2)
 [node name="bridge_stone_slab" type="Node3D"]
 script = ExtResource("1")
 model_path = "res://environment/courtyard/assets/Bridges/bridge_stone_slab/bridge_stone_slab.glb"
+authored_size = Vector3(11, 0.4, 2)
 
 [node name="Graybox" type="Node3D" parent="."]
 

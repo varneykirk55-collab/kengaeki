@@ -24,6 +24,7 @@ height = 2.5
 [node name="tree_maple_momiji" type="Node3D"]
 script = ExtResource("1")
 model_path = "res://environment/courtyard/assets/Vegetation/tree_maple_momiji/tree_maple_momiji.glb"
+authored_size = Vector3(5, 5, 5)
 
 [node name="Graybox" type="Node3D" parent="."]
 

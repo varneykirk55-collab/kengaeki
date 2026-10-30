@@ -16,7 +16,8 @@ size = Vector3(8.6, 1.5, 8.6)
 
 [node name="corner_turret" type="Node3D"]
 script = ExtResource("1")
-model_path = "res://environment/courtyard/assets/Walls/corner_turret/corner_turret.glb"
+model_path = "res://environment/courtyard/assets/Courtyard/corner_turret/corner_turret.glb"
+authored_size = Vector3(8, 10, 8)
 
 [node name="Graybox" type="Node3D" parent="."]
 

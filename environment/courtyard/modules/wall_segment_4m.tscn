@@ -16,7 +16,8 @@ size = Vector3(4, 0.6, 2.1)
 
 [node name="wall_segment_4m" type="Node3D"]
 script = ExtResource("1")
-model_path = "res://environment/courtyard/assets/Walls/wall_segment_4m/wall_segment_4m.glb"
+model_path = "res://environment/courtyard/assets/Courtyard/wall_segment_4m/wall_segment_4m.glb"
+authored_size = Vector3(4, 5, 1.6)
 
 [node name="Graybox" type="Node3D" parent="."]
 

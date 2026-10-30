@@ -15,6 +15,7 @@ size = Vector3(2.6, 1.8, 2.1)
 [node name="rock_formation_large" type="Node3D"]
 script = ExtResource("1")
 model_path = "res://environment/courtyard/assets/Rocks/rock_formation_large/rock_formation_large.glb"
+authored_size = Vector3(3, 2, 2.5)
 
 [node name="Graybox" type="Node3D" parent="."]
 

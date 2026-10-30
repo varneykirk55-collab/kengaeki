@@ -25,6 +25,20 @@ extends Node3D
 		model_yaw_degrees = v
 		if is_node_ready():
 			_refresh()
+## Per-axis fit applied on top of model_scale (integration fit only; documented in DEVIATIONS.md).
+@export var model_scale_xyz: Vector3 = Vector3.ONE:
+	set(v):
+		model_scale_xyz = v
+		if is_node_ready():
+			_refresh()
+## Offset of the imported model inside the wrapper (e.g. sink a bridge so its ends sit flush).
+@export var model_offset: Vector3 = Vector3.ZERO:
+	set(v):
+		model_offset = v
+		if is_node_ready():
+			_refresh()
+## Bill's authored size for this module (x, y, z before yaw), for the integration checks.
+@export var authored_size: Vector3 = Vector3.ZERO
 ## Force the graybox even when a model is available (debugging / comparing scale).
 @export var force_graybox: bool = false:
 	set(v):
@@ -51,7 +65,8 @@ func _refresh() -> void:
 			if inst:
 				var holder := Node3D.new()
 				holder.name = "Model"
-				holder.scale = Vector3.ONE * model_scale
+				holder.scale = model_scale_xyz * model_scale
+				holder.position = model_offset
 				holder.rotation_degrees.y = model_yaw_degrees
 				holder.add_child(inst)
 				add_child(holder)  # not owned: never saved into the scene file

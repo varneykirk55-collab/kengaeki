@@ -24,6 +24,7 @@ height = 2.5
 [node name="tree_sakura" type="Node3D"]
 script = ExtResource("1")
 model_path = "res://environment/courtyard/assets/Vegetation/tree_sakura/tree_sakura.glb"
+authored_size = Vector3(6, 6, 6)
 
 [node name="Graybox" type="Node3D" parent="."]
 

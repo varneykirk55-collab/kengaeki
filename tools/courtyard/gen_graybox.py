@@ -150,6 +150,13 @@ class Scene:
             props.append(("script", 'ExtResource("1")'))
             if self.model_path:
                 props.append(("model_path", '"%s"' % self.model_path))
+            fit = MODEL_FIT.get(self.name, {})
+            if "offset" in fit:
+                props.append(("model_offset", vec(fit["offset"])))
+            if "scale_xyz" in fit:
+                props.append(("model_scale_xyz", vec(fit["scale_xyz"])))
+            if getattr(self, "authored_size", None):
+                props.append(("authored_size", vec(self.authored_size)))
         self.node(self.name, "Node3D", None, props)
         self.node("Graybox", "Node3D", ".")
         if collision:
@@ -182,13 +189,27 @@ def asset_candidates(asset):
     return [(c, n) for c in cats for n in names]
 
 
+# Preferred variant file per blueprint asset (BJORN's LOD variants sit next to the main GLB).
+# Bill's inventory asks for the lantern decimated to ~8k tris; BJORN delivered that as lod8k.
+MODEL_VARIANT = {"stone_lantern_toro_2m": "stone_lantern_toro_lod8k"}
+
+# Integration fit applied to the imported model only (graybox and collision unaffected unless noted).
+# Every entry is a documented deviation (docs/courtyard/DEVIATIONS.md).
+MODEL_FIT = {
+    # Sink the arch bridge 0.15 m so its north deck end sits flush on the bank (its ends are
+    # 0.15 m / 0.26 m thick above y=0 in the GLB); the arena colliders follow the sunk deck.
+}
+
+
 def resolve_model_path(asset):
     """res:// path of the GLB already copied into the repo for this asset, if any; otherwise the
     default expected path (which does not exist, so the prefab shows its graybox)."""
     for c, n in asset_candidates(asset):
-        rel = "%s/assets/%s/%s/%s.glb" % (BASE, c, n, n)
-        if os.path.isfile(os.path.join(ROOT, rel)):
-            return "res://" + rel
+        names = ([MODEL_VARIANT[asset]] if asset in MODEL_VARIANT else []) + [n]
+        for fn in names:
+            rel = "%s/assets/%s/%s/%s.glb" % (BASE, c, n, fn)
+            if os.path.isfile(os.path.join(ROOT, rel)):
+                return "res://" + rel
     c, n = asset_candidates(asset)[0]
     return asset_path(c, n)
 
@@ -229,10 +250,119 @@ ARCH = {"wall_segment_4m", "corner_turret", "main_gate_yaguramon", "main_hall_go
         "storehouse_kura", "castle_keep_tenshu", "bridge_arched_taikobashi", "bridge_stone_slab", "pond_edge_stones_2m"}
 
 
+# ---- Arch bridge walking surface (batch 2, Oct 30) ----
+# Deck-top profile of BJORN's bridge_arched_taikobashi.glb (local X = length, model space, y up),
+# measured with tools/courtyard/glb_probe.py (vertical ray casts on the deck centre line). The
+# deck is not symmetric: the -X end is 0.26 m thick, the +X end 0.15 m. Ends are joined to the
+# bank by lead-in chords from y=0 at |x| = 7 m (0.5 m onto the bank, under the deck end).
+ARCH_PROFILE = [(-5.0, 0.47), (-3.5, 0.65), (-2.0, 0.78), (-0.75, 0.85), (0.75, 0.845),
+                (2.0, 0.78), (3.5, 0.63), (4.75, 0.40), (5.5, 0.17)]
+ARCH_LEADIN_X = 7.0
+ARCH_DECK_T = 0.3     # collider / graybox deck thickness
+ARCH_RAIL_H = 1.0     # rail top 1.0 m above the walking surface (addendum 6:40 PM)
+ARCH_RAIL_T = 0.15
+ARCH_RAIL_Z = 1.275   # rail centre line, either side of the 2.4 m deck
+
+
+def arch_knots():
+    sink = MODEL_FIT.get("bridge_arched_taikobashi", {}).get("offset", (0, 0, 0))[1]
+    return [(-ARCH_LEADIN_X, 0.0)] + [(x, y + sink) for x, y in ARCH_PROFILE] + [(ARCH_LEADIN_X, 0.0)]
+
+
+def arch_segments():
+    """Deck boxes (centre x, centre y, length, tilt deg about local Z) whose top faces are the
+    chords between consecutive knots (slightly overlapped so there is no seam)."""
+    out = []
+    k = arch_knots()
+    for (x0, y0), (x1, y1) in zip(k[:-1], k[1:]):
+        a = math.atan2(y1 - y0, x1 - x0)
+        mx, my = (x0 + x1) / 2, (y0 + y1) / 2
+        ln = math.hypot(x1 - x0, y1 - y0) + 0.06
+        out.append((mx + math.sin(a) * ARCH_DECK_T / 2, my - math.cos(a) * ARCH_DECK_T / 2, ln, math.degrees(a)))
+    return out
+
+
+def arch_rail_centre(cx, cy, deg):
+    a = math.radians(deg)
+    off = ARCH_DECK_T / 2 + ARCH_RAIL_H / 2  # from the deck box centre along the surface normal
+    return cx - math.sin(a) * off, cy + math.cos(a) * off
+
+
+def arch_deck_height(x):
+    """Walking-surface height (top of the deck colliders) at local x."""
+    k = arch_knots()
+    for (x0, y0), (x1, y1) in zip(k[:-1], k[1:]):
+        if x0 <= x <= x1:
+            return y0 + (y1 - y0) * (x - x0) / (x1 - x0)
+    return 0.0
+
+
+def xform_basis(pos, cols):
+    """Transform3D from basis columns (images of local x, y, z)."""
+    xa, ya, za = cols
+    rows = [xa[0], ya[0], za[0], xa[1], ya[1], za[1], xa[2], ya[2], za[2]]
+    return "Transform3D(%s)" % ", ".join(fmt(round(v, 6)) for v in rows + list(pos))
+
+
+def place(inst_pos, yaw, local_pos, tilt_z=0.0):
+    """World position and basis of a box given in a yawed instance's local frame, tilted about
+    local Z (blueprint convention: yaw about +Y, Godot rotation_degrees.y)."""
+    c, s_ = math.cos(math.radians(yaw)), math.sin(math.radians(yaw))
+    lx, ly, lz = local_pos
+    wp = (inst_pos[0] + c * lx + s_ * lz, inst_pos[1] + ly, inst_pos[2] - s_ * lx + c * lz)
+    ct, st = math.cos(math.radians(tilt_z)), math.sin(math.radians(tilt_z))
+    loc = [(ct, st, 0.0), (-st, ct, 0.0), (0.0, 0.0, 1.0)]  # columns of R_z(tilt)
+    ry = lambda v: (c * v[0] + s_ * v[2], v[1], -s_ * v[0] + c * v[2])
+    return wp, [ry(v) for v in loc]
+
+
 # Addendum, Oct 30 6:40 PM (Bill): nav bake y -0.6..2.0; late-afternoon sun ~35 deg from the SW.
 NAV_BAKE_HEIGHT = 2.6
 SUN_ELEVATION_DEG = 35.0
 SUN_FROM_AZIMUTH_DEG = 225.0  # compass bearing the light comes FROM (0 = north/-Z, 90 = east/+X)
+
+
+# Where a filler must stop short of the host's centre (m from the host centre along the wall line).
+# BJORN's gate is hollow inside (an open room |x| < 5.6 behind the doors, visible from the courtyard),
+# so its fillers run from the wall end to just inside the pier wall (inner face 5.6-6.0 m) and are
+# shortened by scaling the 4 m module along its length. Turrets are closed shells: full modules.
+FILLER_INNER_EDGE = {"main_gate_yaguramon": 5.8}
+
+
+def wall_fillers(L, pitch=4.0):
+    """One extra wall module past every run end whose next slot lies inside a turret or gate
+    footprint (Bill's sizes), so the module tucks into that building's body.
+    Returns (id, x, y, z, yaw, length_scale)."""
+    walls = [o for o in L.objs if o[1] == "wall_segment_4m"]
+    hosts = []
+    for o in L.objs:
+        if o[1] in ("corner_turret", "main_gate_yaguramon"):
+            sx, _, sz = o[6]
+            if round(o[5]) % 180:
+                sx, sz = sz, sx
+            hosts.append((o[2], o[4], sx / 2, sz / 2, FILLER_INNER_EDGE.get(o[1])))
+    out, seen = [], set()
+    for (oid, _a, x, y, z, yaw, *_r) in walls:
+        dx, dz = round(math.cos(math.radians(yaw)), 6), round(-math.sin(math.radians(yaw)), 6)
+        for sgn, tag in ((1, "A"), (-1, "B")):
+            px, pz = x + sgn * pitch * dx, z + sgn * pitch * dz
+            if any(abs(w[2] - px) < 0.5 and abs(w[4] - pz) < 0.5 for w in walls):
+                continue
+            host = [h for h in hosts if abs(px - h[0]) <= h[2] + 1e-6 and abs(pz - h[1]) <= h[3] + 1e-6]
+            if not host:
+                continue
+            hx, hz, _ex, _ez, inner = host[0]
+            scale = 1.0
+            if inner:
+                ex_, ez_ = x + sgn * pitch / 2 * dx, z + sgn * pitch / 2 * dz  # run end
+                ln = math.hypot(ex_ - hx, ez_ - hz) - inner
+                scale = ln / pitch
+                px, pz = ex_ + sgn * dx * ln / 2, ez_ + sgn * dz * ln / 2
+            key = (round(px, 3), round(pz, 3))
+            if key not in seen:
+                seen.add(key)
+                out.append(("%s_Fill%s" % (oid, tag), round(px, 4), y, round(pz, 4), yaw, round(scale, 4)))
+    return out
 
 
 def sun_transform(elev, az_from, origin):
@@ -269,6 +399,7 @@ def prefab_path(asset):
 
 def build_prefab(asset, size):
     s = Scene(asset, resolve_model_path(asset))
+    s.authored_size = tuple(size)
     sx, sy, sz = size
     s.begin(collision=asset not in ARCH and asset not in ("shrub_azalea", "rock_small_cluster"))
     if asset == "wall_segment_4m":
@@ -371,7 +502,7 @@ def courtyard_arena(L):
     s.node("Collision", "Node3D", ".", groups=["nav_source"])
     bodies = set()
 
-    def col(group, name, pos, size, rot=None, cyl=None):
+    def col(group, name, pos, size, rot=None, cyl=None, xf=None):
         if group not in bodies:
             s.node(group, "StaticBody3D", "Collision", [("collision_layer", "1"), ("collision_mask", "0")])
             bodies.add(group)
@@ -379,7 +510,7 @@ def courtyard_arena(L):
             sh = s.sub("CylinderShape3D", [("radius", fmt(cyl[0])), ("height", fmt(cyl[1]))])
         else:
             sh = s.sub("BoxShape3D", [("size", vec(size))])
-        s.node(name, "CollisionShape3D", "Collision/" + group, [("transform", xform(pos, rot)), ("shape", sh)])
+        s.node(name, "CollisionShape3D", "Collision/" + group, [("transform", xf or xform(pos, rot)), ("shape", sh)])
 
     col("Ground", "G1_West", (-7.75, -0.5, -6), (64.5, 1, 80))
     col("Ground", "G2_EastStrip", (37.75, -0.5, -6), (4.5, 1, 80))
@@ -461,6 +592,11 @@ def courtyard_arena(L):
         if grp not in made:
             s.node(grp, "Node3D", "Visual"); made.add(grp)
         s.node(oid, None, "Visual/" + grp, [("transform", xform((x, y, z), ("y", yaw)))], instance=prefab_path(asset))
+    # Visual-only filler wall modules hidden inside the turret / gate bodies (DEVIATIONS.md #13):
+    # BJORN's turret has a battered base and the gate body is narrower than Bill's footprint, so
+    # the wall runs ending at the footprint edge would leave see-through gaps. Collision unchanged.
+    for (fid, x, y, z, yaw, k) in wall_fillers(L):
+        s.node(fid, None, "Visual/Walls", [("transform", xform((x, y, z), ("y", yaw), (k, 1, 1)))], instance=prefab_path("wall_segment_4m"))
 
     # ---- Gameplay interface (names main.gd / arena.gd rely on) ----
     s.node("NavigationRegion3D", "NavigationRegion3D", ".", [("navigation_mesh", nav)])

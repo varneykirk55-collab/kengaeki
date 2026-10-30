@@ -12,6 +12,7 @@ rings = 6
 [node name="shrub_azalea" type="Node3D"]
 script = ExtResource("1")
 model_path = "res://environment/courtyard/assets/Vegetation/shrub_azalea/shrub_azalea.glb"
+authored_size = Vector3(1.6, 1, 1.6)
 
 [node name="Graybox" type="Node3D" parent="."]
 
