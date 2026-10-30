@@ -4,10 +4,14 @@ extends Node
 ## Sounds are discovered by folder: every file inside res://audio/sfx/<category>/
 ## becomes a random variation of <category>. Dropping new .wav/.ogg/.mp3 files into
 ## a folder (or deleting the placeholders) is all that is needed to replace audio.
-## Music is any file in res://audio/music/ (played in order, looping).
+## Music: the tracks listed in res://audio/music_config.tres, or else every file in
+## res://audio/music/ (see MusicConfig). One track loops seamlessly; several play in order.
+## The music ducks briefly while combat sounds play (MusicConfig ducking settings).
 
 const SFX_ROOT := "res://audio/sfx"
 const MUSIC_ROOT := "res://audio/music"
+const MUSIC_CONFIG_PATH := "res://audio/music_config.tres"
+const MusicConfigScript := preload("res://scripts/audio/music_config.gd")
 const AUDIO_EXTENSIONS := ["wav", "ogg", "mp3"]
 const POOL_SIZE_3D := 24
 const POOL_SIZE_2D := 6
@@ -34,6 +38,10 @@ var _music_index := 0
 var _pool_3d: Array[AudioStreamPlayer3D] = []
 var _pool_2d: Array[AudioStreamPlayer] = []
 var _music_player: AudioStreamPlayer
+var music_config: MusicConfigScript
+var _duck_db := 0.0
+var _duck_until_usec := 0
+var _last_tick_usec := 0
 var _next_3d := 0
 var _next_2d := 0
 var _missing_reported: Dictionary = {}
@@ -42,6 +50,7 @@ var _missing_reported: Dictionary = {}
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	_setup_buses()
+	_load_music_config()
 	_scan_library()
 	for i in POOL_SIZE_3D:
 		var p := AudioStreamPlayer3D.new()
@@ -58,7 +67,7 @@ func _ready() -> void:
 		_pool_2d.append(p2)
 	_music_player = AudioStreamPlayer.new()
 	_music_player.bus = "Music"
-	_music_player.volume_db = -10.0
+	_music_player.volume_db = music_config.volume_db
 	_music_player.finished.connect(_on_music_finished)
 	add_child(_music_player)
 
@@ -80,7 +89,7 @@ func _scan_library() -> void:
 			var streams := _load_streams_in(SFX_ROOT.path_join(category))
 			if not streams.is_empty():
 				library[category] = streams
-	music_tracks.assign(_load_streams_in(MUSIC_ROOT))
+	_collect_music_tracks()
 	var missing: Array[String] = []
 	for c in CATEGORIES:
 		if not library.has(c):
@@ -88,6 +97,34 @@ func _scan_library() -> void:
 	if not missing.is_empty():
 		print("[AudioManager] No audio supplied for: ", ", ".join(missing))
 	print("[AudioManager] Loaded %d SFX categories, %d music tracks." % [library.size(), music_tracks.size()])
+
+
+func _load_music_config() -> void:
+	if ResourceLoader.exists(MUSIC_CONFIG_PATH):
+		music_config = load(MUSIC_CONFIG_PATH) as MusicConfigScript
+	if music_config == null:
+		music_config = MusicConfigScript.new()
+
+
+## Tracks from the config if any are assigned, otherwise the music folder. Placeholder files
+## are dropped from the folder scan once real tracks are present.
+func _collect_music_tracks() -> void:
+	var tracks: Array[AudioStream] = []
+	for t in music_config.tracks:
+		if t:
+			tracks.append(t)
+	if tracks.is_empty():
+		var placeholders: Array[AudioStream] = []
+		for t in _load_streams_in(MUSIC_ROOT):
+			if t.resource_path.get_file().to_lower().contains("placeholder"):
+				placeholders.append(t)
+			else:
+				tracks.append(t)
+		if tracks.is_empty():
+			tracks = placeholders
+	if music_config.shuffle:
+		tracks.shuffle()
+	music_tracks.assign(tracks)
 
 
 func _load_streams_in(path: String) -> Array[AudioStream]:
@@ -133,6 +170,8 @@ func play_sfx(category: StringName, position: Vector3, volume_db: float = 0.0, p
 	p.volume_db = volume_db + CATEGORY_VOLUME.get(String(category), 0.0)
 	p.pitch_scale = 1.0 + randf_range(-pitch_variation, pitch_variation)
 	p.play()
+	if music_config.duck_categories.has(String(category)):
+		duck_music()
 	return p
 
 
@@ -151,18 +190,59 @@ func play_ui(category: StringName, volume_db: float = 0.0) -> void:
 func play_music() -> void:
 	if music_tracks.is_empty() or _music_player.playing:
 		return
-	_music_player.stream = music_tracks[_music_index % music_tracks.size()]
-	_music_player.play()
+	_start_music_track()
 
 
 func stop_music() -> void:
 	_music_player.stop()
 
 
-func _on_music_finished() -> void:
-	_music_index += 1
-	_music_player.stream = music_tracks[_music_index % music_tracks.size()]
+## A single track uses the stream's own loop, which is seamless; with several tracks each one
+## plays once and `finished` moves on to the next.
+func _start_music_track() -> void:
+	var stream := music_tracks[_music_index % music_tracks.size()]
+	_set_stream_loop(stream, music_tracks.size() == 1)
+	_music_player.stream = stream
 	_music_player.play()
+
+
+func _set_stream_loop(stream: AudioStream, enabled: bool) -> void:
+	var wav := stream as AudioStreamWAV
+	if wav:
+		if not enabled:
+			wav.loop_mode = AudioStreamWAV.LOOP_DISABLED
+		elif wav.loop_mode == AudioStreamWAV.LOOP_DISABLED:
+			# Keep loop points set in the import dock; otherwise loop the whole file.
+			wav.loop_mode = AudioStreamWAV.LOOP_FORWARD
+			wav.loop_begin = 0
+			wav.loop_end = int(wav.get_length() * wav.mix_rate)
+	elif "loop" in stream:  # AudioStreamOggVorbis, AudioStreamMP3
+		stream.set("loop", enabled)
+
+
+func _on_music_finished() -> void:
+	if music_tracks.is_empty():
+		return
+	_music_index += 1
+	_start_music_track()
+
+
+## Lowers the music for a moment; called for combat sounds and usable from anywhere.
+func duck_music() -> void:
+	_duck_until_usec = Time.get_ticks_usec() + int(music_config.duck_hold * 1000000.0)
+
+
+func _process(_delta: float) -> void:
+	# Real time, so hitstop and slow motion (Engine.time_scale) do not stall the ducking.
+	var now := Time.get_ticks_usec()
+	var dt := 0.0 if _last_tick_usec == 0 else (now - _last_tick_usec) / 1000000.0
+	_last_tick_usec = now
+	var depth: float = music_config.duck_db
+	var target := depth if now < _duck_until_usec else 0.0
+	var time: float = music_config.duck_attack if target < _duck_db else music_config.duck_release
+	_duck_db = move_toward(_duck_db, target, absf(depth) * dt / maxf(time, 0.001))
+	if _music_player:
+		_music_player.volume_db = music_config.volume_db + _duck_db
 
 
 func _exit_tree() -> void:
