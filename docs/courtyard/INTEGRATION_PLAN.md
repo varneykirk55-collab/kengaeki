@@ -174,7 +174,7 @@ lighting). Open: Kirk's direct confirmation of the approval, and the final time 
 5. A heads-up when each asset lands, so I can copy it (read-only) and swap it in.
 
 ## 8. Verification status (headless only)
-Latest run (addendum + lantern, Oct 30, 2026, ~6:50 PM EDT):
+Latest run (addendum + lantern, Oct 30, 2026, ~6:42 PM EDT):
 - Godot 4.3 `--import`: exit 0, with no errors beyond the known dummy-renderer noise
   (`Parameter "m" is null`). The lantern material has albedo, normal and metallic/roughness
   textures (2048²) and is back-face culled (single-sided).
