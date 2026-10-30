@@ -132,6 +132,10 @@ distracting, a later change could put decor on a new layer the player/enemies ma
 camera does not; that touches `player.tscn`/`enemy.tscn` masks, so it needs approval first.
 
 ## 5. GLB storage plan
+**Decision (Kirk, via Bill, Oct 30 6:48 PM EDT):** no LFS for now; commit optimised GLBs ≤ 10 MB
+directly. PR target: new branch `map-assets` (from `character-integration` @ `ed5cba4`); draft PR #1.
+Bill OK'd the rock-top nav cull (DEVIATIONS #9).
+
 - Source of truth: BJORN's library on the shared box,
   `/workspace/kengeki_assets/library/<Category>/<asset>/{original,optimised}/`, read-only for me.
 - Only **optimised** GLBs are copied into `res://environment/courtyard/assets/...`.
