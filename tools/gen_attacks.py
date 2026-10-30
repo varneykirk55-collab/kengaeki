@@ -24,7 +24,7 @@ PLAYER = {
                     stamina_cost=14, stagger_power=2, knockback=1.2, reach=2.7, sweep_from=180, sweep_to=-180,
                     lunge_distance=0.6, hyper_armor=True, hitstop=0.08, camera_shake=0.3,
                     swing_sound="swing_heavy", is_finisher=True),
-    "heavy_1": dict(display_name="Overhead Cut", animation="overhead", startup=0.34, active=0.12, recovery=0.42,
+    "heavy_1": dict(display_name="Overhead Cut", animation="overhead", startup=0.26, active=0.12, recovery=0.42,
                     cancel_point=0.12, dodge_cancel_startup=0.18, damage=28, guard_damage=38, stamina_cost=18,
                     stagger_power=2, knockback=1.0, reach=2.6, sweep_from=20, sweep_to=-20, lunge_distance=1.0,
                     hyper_armor=True, hitstop=0.07, camera_shake=0.25, swing_sound="swing_heavy"),
