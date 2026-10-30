@@ -17,3 +17,7 @@ build box (not legal advice; some terms are still unverified there).
 | `Courtyard/corner_turret` | Tencent Hunyuan 3D (AI-generated) | BJORN pipeline: 12,000 tris, 2048² albedo (JPEG) + 1024² data maps, 7.48 × 10.72 × 7.46 m |
 | `Courtyard/main_gate_yaguramon` | Tencent Hunyuan 3D (AI-generated) | BJORN pipeline: 20,000 tris, 2048² albedo (JPEG) + 1024² data maps, 14.67 × 10.91 × 8.00 m |
 | `Courtyard/main_hall_goten` | Tencent Hunyuan 3D (AI-generated) | BJORN pipeline: 50,004 → 25,000 tris, 2048² albedo (JPEG) + 1024² data maps, 22.93 × 9.42 × 12.00 m |
+| `Courtyard/bridge_arched_taikobashi` | Tencent Hunyuan 3D (AI-generated) | BJORN pipeline: 8,000 tris, 1024² textures, non-uniform fit to 13 × 1.8 × 2.4 m (anisotropy 3.14) |
+| `Courtyard/barracks_nagaya` | Tencent Hunyuan 3D (AI-generated) | BJORN pipeline: 12,000 tris, 1024² textures (JPEG albedo), 24 × 6 × 6 m |
+| `Courtyard/storehouse_kura` | Tencent Hunyuan 3D (AI-generated) | BJORN pipeline: 6,000 tris, 1024² textures, 8 × 7 × 6 m, door +Z |
+| `Courtyard/castle_keep_tenshu` | Tencent Hunyuan 3D (AI-generated) | BJORN pipeline: 20,000 tris, 1024² textures (JPEG albedo), 30 × 28 × 22 m, backdrop only |

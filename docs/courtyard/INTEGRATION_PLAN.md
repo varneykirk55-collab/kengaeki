@@ -233,3 +233,36 @@ Headless results: Godot 4.3 `--import` exit 0 (only the dummy-renderer `Paramete
 noise); `check_courtyard.gd` PASS (112 checks, navmesh 376 polygons) including new per-asset checks
 (model shown on every instance, AABB within 10% of Bill, base at y 0, 78 wall instances sharing one
 mesh); gameplay tests 109 passed / 8 failed (same 8 character-GLB failures as the base).
+
+## 10. BJORN batch 2 (Oct 30, 2026, integrated ~8:50 PM EDT)
+Same procedure as batch 1 (HANDOFF "Batch 2 notes", MANIFEST and stats read only).
+
+| Asset | Measured vs Bill (m) | Facing / fit |
+|---|---|---|
+| bridge_arched_taikobashi | 13.00 × 1.80 × 2.40 (0%) | long axis X; yaw 90 spans the pond N–S. Sunk 0.15 m; box chords follow the arch (DEVIATIONS #17) |
+| barracks_nagaya | 24.00 × 6.00 × 6.00 (0%) | long axis X, symmetric; yaw 90 runs it along the west lane |
+| storehouse_kura | 8.00 × 7.00 × 6.00 (0%) | door on +Z; Bill's yaw 90 turns it to +X, facing path P8c (east) |
+| castle_keep_tenshu | 30.00 × 28.00 × 22.00 (0%) | backdrop only: no collider (checked: no shapes in its volume) |
+
+Budget after batch 2 (.ctex sizes after import):
+
+| Asset | GLB | Tris | Instances | Tris in scene | Texture VRAM (MB) | Git (MB) |
+|---|---|---|---|---|---|---|
+| barracks_nagaya | barracks_nagaya.glb | 12,000 | 1 | 12,000 | 2.80 | 4.74 |
+| bridge_arched_taikobashi | bridge_arched_taikobashi.glb | 8,000 | 1 | 8,000 | 2.80 | 4.59 |
+| castle_keep_tenshu | castle_keep_tenshu.glb | 20,000 | 1 | 20,000 | 2.80 | 5.30 |
+| corner_turret | corner_turret.glb | 12,000 | 4 | 48,000 | 4.89 | 5.48 |
+| main_gate_yaguramon | main_gate_yaguramon.glb | 20,000 | 1 | 20,000 | 4.89 | 5.12 |
+| main_hall_goten | main_hall_goten.glb | 25,000 | 1 | 25,000 | 4.89 | 6.23 |
+| stone_lantern_toro_2m | stone_lantern_toro_lod8k.glb | 8,000 | 10 | 80,000 | 2.80 | 3.54 |
+| storehouse_kura | storehouse_kura.glb | 6,000 | 1 | 6,000 | 2.80 | 4.82 |
+| wall_segment_4m | wall_segment_4m.glb | 13,134 | 78 | 1,024,452 | 2.80 | 5.27 |
+| **Total** | | 124,134 unique | | **1,243,452** | **31.46** | 45.09 |
+
+Headless results: Godot 4.3 `--import` exit 0 (dummy-renderer noise only); `check_courtyard.gd`
+PASS (124 checks, navmesh 374 polygons): arch bridge on the navmesh at its crown, crossable end to
+end over the deck (path y 0.40–1.15, 15.1 m, never dips into the basin), rails 1.00–1.02 m above the
+deck at z 0, ±3, ±5.5, gate blocking at z 30, keep without collision, spawns, routes and combat area
+unchanged; gameplay tests 109 passed / 8 failed (the same 8 character-GLB failures as the base).
+Not verified: anything visual (seams, the 0.11 m bridge lip, z-fighting, lighting), FPS and draw
+calls. These need a windowed run.

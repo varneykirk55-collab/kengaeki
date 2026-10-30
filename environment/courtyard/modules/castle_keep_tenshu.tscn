@@ -28,7 +28,7 @@ size = Vector3(14, 1, 11)
 
 [node name="castle_keep_tenshu" type="Node3D"]
 script = ExtResource("1")
-model_path = "res://environment/courtyard/assets/Architecture/castle_keep_tenshu/castle_keep_tenshu.glb"
+model_path = "res://environment/courtyard/assets/Courtyard/castle_keep_tenshu/castle_keep_tenshu.glb"
 authored_size = Vector3(30, 28, 22)
 
 [node name="Graybox" type="Node3D" parent="."]

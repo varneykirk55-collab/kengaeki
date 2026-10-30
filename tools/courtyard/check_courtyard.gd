@@ -124,7 +124,7 @@ func _blueprint_checks(arena: Node, map: RID, space: PhysicsDirectSpaceState3D, 
 		var hit := space.intersect_ray(PhysicsRayQueryParameters3D.create(from, from + dir * 3.5, 1))
 		check(hit.is_empty(), "%s: clear 3.5 m toward origin" % p.name)
 	# Bridges navigable, pond basin not.
-	for item in [["arch bridge deck", Vector3(31, 1.0, 0)], ["slab bridge deck", Vector3(26, 0.0, 0)]]:
+	for item in [["arch bridge deck", Vector3(31, 0.7, 0)], ["slab bridge deck", Vector3(26, 0.0, 0)]]:
 		var cp := NavigationServer3D.map_get_closest_point(map, item[1])
 		var flat := Vector2(cp.x - item[1].x, cp.z - item[1].z).length()
 		check(flat < 0.35 and absf(cp.y - item[1].y) < 0.6, "%s on navmesh (closest %s; navmesh sits up to ~0.5 m above colliders at cell_height 0.25)" % [item[0], cp])
@@ -142,17 +142,20 @@ func _blueprint_checks(arena: Node, map: RID, space: PhysicsDirectSpaceState3D, 
 			["north wall top", Vector3(0, 5, -46)], ["east wall top", Vector3(40, 5, 0)], ["gate roof", Vector3(0, 10, 34)]]:
 		var cp := NavigationServer3D.map_get_closest_point(map, item[1])
 		check(cp.y < 2.0, "%s not walkable (closest navmesh point %s)" % [item[0], cp])
-	# Arch bridge: the route between its two ends goes over the deck (navmesh above ~1.1 m).
+	# Arch bridge: the route between its two ends goes over the deck (BJORN's arch, crown ~0.7 m;
+	# a route through the pond basin would dip below 0).
 	var an := NavigationServer3D.map_get_closest_point(map, Vector3(31, 0, -7.5))
 	var asn := NavigationServer3D.map_get_closest_point(map, Vector3(31, 0, 7.5))
 	var arch := NavigationServer3D.map_get_path(map, an, asn, true)
 	var top := -INF
+	var low := INF
 	var length := 0.0
 	for i in arch.size():
 		top = maxf(top, arch[i].y)
+		low = minf(low, arch[i].y)
 		if i > 0:
 			length += arch[i].distance_to(arch[i - 1])
-	check(arch.size() > 0 and top > 1.1 and length < 18.0, "arch bridge crossable end to end over the deck (path max y %.2f, length %.1f m)" % [top, length])
+	check(arch.size() > 0 and top > 0.5 and low > -0.3 and length < 18.0, "arch bridge crossable end to end over the deck (path y %.2f..%.2f, length %.1f m)" % [low, top, length])
 	# Arch rails: top about 1.0 m above the walking surface at each point (addendum).
 	for z in [0.0, -3.0, 3.0, -5.5, 5.5]:
 		for x in [29.725, 32.275]:

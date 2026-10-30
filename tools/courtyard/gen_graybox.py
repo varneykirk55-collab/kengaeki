@@ -198,6 +198,7 @@ MODEL_VARIANT = {"stone_lantern_toro_2m": "stone_lantern_toro_lod8k"}
 MODEL_FIT = {
     # Sink the arch bridge 0.15 m so its north deck end sits flush on the bank (its ends are
     # 0.15 m / 0.26 m thick above y=0 in the GLB); the arena colliders follow the sunk deck.
+    "bridge_arched_taikobashi": dict(offset=(0, -0.15, 0)),
 }
 
 
@@ -431,18 +432,13 @@ def build_prefab(asset, size):
             s.box("Roof%d" % i, (0, y + 5.5, 0), (w + 2, 1, d + 2), "tile")
             y += 6.5
     elif asset == "bridge_arched_taikobashi":
-        # Local X = length (13 m), deck width on Z. Matches the arena colliders (section 7).
-        for nm, x, deg in (("RampA", -4.28, 12.53), ("RampB", 4.28, -12.53)):
-            s.box(nm, (x, 0.35, 0), (4.61, 0.3, sz), "lacquer", rot=("z", deg))
-        s.box("Deck", (0, 0.85, 0), (4.0, 0.3, sz), "lacquer")
-        # Rails: top bar ~1.0 m above the walking surface, following the arch (addendum 6:40 PM).
-        for z in (-sz / 2, sz / 2):
-            s.box("RailDeck%+.1f" % z, (0, 1.94, z), (4.0, 0.12, 0.12), "lacquer")
-            for nm, x, deg in (("A", -4.28, 12.53), ("B", 4.28, -12.53)):
-                a = math.radians(deg)
-                off = 0.15 + 0.94  # ramp half-thickness + rail height along the surface normal
-                s.box("Rail%s%+.1f" % (nm, z), (x - math.sin(a) * off, 0.35 + math.cos(a) * off, z),
-                      (4.61, 0.12, 0.12), "lacquer", rot=("z", deg))
+        # Local X = length (13 m), deck width on Z. Same boxes as the arena colliders: chords that
+        # follow BJORN's deck profile (ARCH_PROFILE), each with a rail whose top is 1.0 m above it.
+        for i, (cx, cy, ln, deg) in enumerate(arch_segments()):
+            s.box("Deck%d" % i, (cx, cy, 0), (ln, ARCH_DECK_T, sz), "lacquer", rot=("z", deg))
+            for z in (-ARCH_RAIL_Z, ARCH_RAIL_Z):
+                rx, ry = arch_rail_centre(cx, cy, deg)
+                s.box("Rail%d%+.2f" % (i, z), (rx, ry, z), (ln, ARCH_RAIL_H, ARCH_RAIL_T), "lacquer", rot=("z", deg))
     elif asset == "bridge_stone_slab":
         s.box("Slab", (0, -0.15, 0), (sx, sy, sz), "stone")
     elif asset == "pond_edge_stones_2m":
@@ -533,18 +529,16 @@ def courtyard_arena(L):
     for side, z in (("N", -5.15), ("S", 5.15)):
         for i, (x0, x1) in enumerate(((24.5, 25), (27, 29.8), (32.2, 35.5))):
             col("Pond", "Fence%s%d" % (side, i), ((x0 + x1) / 2, 0.45, z), (x1 - x0, 0.9, 0.3))
-    col("Bridges", "ArchRampN", (31, 0.35, -4.28), (2.4, 0.3, 4.61), ("x", -12.53))
-    col("Bridges", "ArchDeck", (31, 0.85, 0), (2.4, 0.3, 4.0))
-    col("Bridges", "ArchRampS", (31, 0.35, 4.28), (2.4, 0.3, 4.61), ("x", 12.53))
-    # Arch rails: short boxes following the arch, top ~1.0 m above the deck surface
-    # (addendum 6:40 PM; replaces the single 2 m slab to reduce camera pull-in).
-    for side, x in (("W", 29.725), ("E", 32.275)):
-        col("Bridges", "ArchRail%sDeck" % side, (x, 1.5, 0), (0.15, 1.0, 4.0))
-        for nm, zc, deg in (("N", -4.28, -12.53), ("S", 4.28, 12.53)):
-            a = math.radians(deg)
-            off = 0.15 + 0.5  # ramp half-thickness + half the rail height, along the ramp normal
-            col("Bridges", "ArchRail%s%s" % (side, nm), (x, 0.35 + math.cos(a) * off, zc + math.sin(a) * off),
-                (0.15, 1.0, 4.61), ("x", deg))
+    # Arch bridge: deck chords following BJORN's arch (ARCH_PROFILE) + a rail box per chord on each
+    # side, top 1.0 m above the walking surface. Placed through the blueprint instance transform.
+    arch = [o for o in L.objs if o[1] == "bridge_arched_taikobashi"][0]
+    for i, (cx, cy, ln, deg) in enumerate(arch_segments()):
+        wp, basis = place(arch[2:5], arch[5], (cx, cy, 0), deg)
+        col("Bridges", "ArchDeck%d" % i, None, (ln, ARCH_DECK_T, 2.4), xf=xform_basis(wp, basis))
+        rx, ry = arch_rail_centre(cx, cy, deg)
+        for side, z in (("R", -ARCH_RAIL_Z), ("L", ARCH_RAIL_Z)):
+            wp, basis = place(arch[2:5], arch[5], (rx, ry, z), deg)
+            col("Bridges", "ArchRail%s%d" % (side, i), None, (ln, ARCH_RAIL_H, ARCH_RAIL_T), xf=xform_basis(wp, basis))
     col("Bridges", "SlabDeck", (26, -0.15, 0), (2.0, 0.3, 11))
     col("Bridges", "SlabRailW", (24.925, 0.45, 0), (0.15, 0.9, 10))
     col("Bridges", "SlabRailE", (27.075, 0.45, 0), (0.15, 0.9, 10))

@@ -16,7 +16,7 @@ size = Vector3(8.8, 2, 6.8)
 
 [node name="storehouse_kura" type="Node3D"]
 script = ExtResource("1")
-model_path = "res://environment/courtyard/assets/Architecture/storehouse_kura/storehouse_kura.glb"
+model_path = "res://environment/courtyard/assets/Courtyard/storehouse_kura/storehouse_kura.glb"
 authored_size = Vector3(8, 7, 6)
 
 [node name="Graybox" type="Node3D" parent="."]
