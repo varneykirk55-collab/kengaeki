@@ -51,7 +51,7 @@ func run_all() -> void:
 		test_menu_buttons, test_death_and_restart, test_imported_visual_pipeline,
 		test_character_asset, test_character_root_motion_in_place, test_character_locomotion_states,
 		test_character_attack_sync, test_character_attack_sync_segments, test_jump, test_sword_draw_and_sheathe, test_sheathed_attack_draws,
-		test_character_reset_after_death,
+		test_character_reset_after_death, test_refined_locomotion_in_game,
 	]
 	var only := OS.get_environment("KENGEKI_TEST")
 	for t in tests:
@@ -971,3 +971,64 @@ func test_character_attack_sync_segments() -> void:
 	for id in [&"light_1", &"light_2", &"heavy_1"]:
 		var b: Array = best.get(id, [0.0, -1])
 		check(b[1] == AttackRunner.Phase.ACTIVE, "attack sync %s: fastest hand motion in the hit window (phase %d, %.1f m/s)" % [id, b[1], b[0]])
+
+
+## Exercises the production main scene/player/tree; no preview or animation override.
+func test_refined_locomotion_in_game() -> void:
+	var v := _kvis()
+	check(main.scene_file_path == "res://scenes/main.tscn", "integration: production main scene")
+	check(main.arena.scene_file_path == "res://environment/courtyard/scenes/castle_courtyard.tscn", "integration: original courtyard")
+	check(v.is_refined_locomotion_active(), "integration: actual player has refined library and tree connections")
+	var indicator := main.get_node("LocomotionTestIndicator")
+	check(indicator.visible and indicator.status_label.text.contains("ACTIVE"), "integration: visible ASTRA badge reports live player status")
+	await _astra_game_shot("01_idle")
+	press(&"move_forward")
+	await frames(35)
+	check(v.locomotion_test_state().begins_with("locomotion/walk"), "integration: normal movement selects refined Walk")
+	var phase := v._gait_phase
+	var foot := v.skeleton.get_bone_global_pose(v.skeleton.find_bone("CC_Base_L_Foot")).origin
+	await frames(5)
+	check(absf(v._gait_phase-phase)>0.01 and foot.distance_to(v.skeleton.get_bone_global_pose(v.skeleton.find_bone("CC_Base_L_Foot")).origin)>0.005, "integration: refined gait advances and animates real skeleton")
+	await _astra_game_shot("02_walk")
+	press(&"sprint")
+	await frames(25)
+	check(v.locomotion_test_state().begins_with("locomotion/run"), "integration: sprint selects refined Run")
+	await _astra_game_shot("03_run")
+	release(&"sprint")
+	await frames(25)
+	check(v.locomotion_test_state().begins_with("locomotion/walk"), "integration: run transitions back to refined Walk")
+	release(&"move_forward")
+	await frames(30)
+	check(v.locomotion_test_state() == "ACTIVE | idle", "integration: movement returns to idle")
+	await tap(&"jump")
+	await frames(10)
+	check(player.state == Player.State.AIRBORNE and v.locomotion_test_state() == "locomotion/jump | airborne", "integration: player physics and refined Jump active together")
+	await _astra_game_shot("04_jump")
+	var saw_landing := false
+	for i in 60:
+		await frames(1)
+		if v._jump == KengekiCharacterVisual.Jump.LAND:
+			saw_landing = v.locomotion_test_state() == "locomotion/jump | landing"
+			await _astra_game_shot("05_landing")
+			break
+	check(saw_landing, "integration: refined Jump landing section plays on touchdown")
+	await frames(60)
+	check(v._jump == KengekiCharacterVisual.Jump.NONE and v._action_weight < 0.05, "integration: landing blends fully back to locomotion")
+	var e := make_enemy(player.get_forward()*1.8, false, 1000.0)
+	await frames(5)
+	await tap(&"light_attack")
+	await frames(10)
+	check(v.locomotion_test_state().begins_with("Sword_Combo_OneHand"), "integration: combat still uses original sword clip")
+	await _astra_game_shot("06_attack")
+	await frames(45)
+	check(e.health.current<1000.0, "integration: actual enemy takes combat damage")
+	check(_katana_bone() == &"CC_Base_R_Hand", "integration: katana remains attached to original hand bone")
+	print("ASTRA_NORMAL_GAME_VERIFIED: ", v.locomotion_test_state())
+
+
+func _astra_game_shot(name: String) -> void:
+	if "--astra-capture" not in OS.get_cmdline_user_args() or DisplayServer.get_name() == "headless":
+		return
+	DirAccess.make_dir_recursive_absolute("res://build/astra_integration")
+	await RenderingServer.frame_post_draw
+	get_viewport().get_texture().get_image().save_png("res://build/astra_integration/%s.png" % name)

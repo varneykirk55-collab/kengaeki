@@ -2,6 +2,20 @@
 
 Baseline: main at b1e1f550203b454d33d7b358162b3fc1418cb784. Temporary integration branch: test/locomotion-refinement. Main remains unchanged.
 
+## Normal-game integration verification (2026-10-31)
+
+The test branch now displays **ASTRA LOCOMOTION TEST** in the normal main scene, including while the encounter menu is open. Its second line reads the actual Player/Visual AnimationTree: `locomotion/walk`, `locomotion/run`, `locomotion/jump | airborne`, `locomotion/jump | landing`, or the original sword action. It reports NOT ACTIVE if the refined resources/tree are unavailable. The phase number changes during movement.
+
+The previous branch already wired the refined resources into the normal player by default. This pass makes those dependencies explicit with preloads, explicitly enables refinement on the production player scene, checks registration errors, and adds live status instead of relying on a subtle visual difference. No animation files or combat playback code were altered in this pass.
+
+**Launch:** open the existing `project.godot` in Godot 4.3 and press F5. The normal encounter menu is retained; close it or spawn enemies to move. No launcher or diagnostic scene is required. The badge appears at the top center.
+
+Validation uses `res://scenes/main.tscn`, its original courtyard, normal camera, player controller, enemy scene and combat system. No refined flag, animation resources or character model are overridden by the integration test. Automated inputs exercise walk/run transitions, actual airborne physics, landing, return to idle, sword playback and enemy damage. The complete gameplay suite passes **158 checks, zero failures**, including 15 production integration checks. The integration check is also run with real OpenGL rendering and courtyard screenshots inspected. This is automated game playback, not a human keyboard/gamepad playtest.
+
+Reproduce the focused check with `KENGEKI_TEST=refined_locomotion_in_game` and the existing gameplay test scene. Add `-- --astra-capture` with rendering enabled to save the six normal-game screenshots in ignored `build/astra_integration/`. The default main scene itself needs no flags.
+
+The original GLB remains byte-identical; skeleton, katana attachments, attack clips/timing, damage, enemy AI, courtyard and music are unchanged. The test badge is temporary and confined to this branch. Existing headless dummy-renderer and shutdown resource warnings still occur.
+
 ## What changed
 
 Three separate native Godot 4.3 animation resources override locomotion only:

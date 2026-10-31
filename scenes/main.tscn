@@ -1,4 +1,4 @@
-[gd_scene load_steps=11 format=3]
+[gd_scene load_steps=12 format=3]
 
 [ext_resource type="Script" path="res://scripts/main.gd" id="1_main"]
 [ext_resource type="PackedScene" path="res://environment/courtyard/scenes/castle_courtyard.tscn" id="2_arena"]
@@ -9,6 +9,8 @@
 [ext_resource type="Script" path="res://scripts/ui/hud.gd" id="7_hud"]
 [ext_resource type="Script" path="res://scripts/ui/encounter_menu.gd" id="8_menu"]
 [ext_resource type="Script" path="res://scripts/ui/death_screen.gd" id="9_death"]
+
+[ext_resource type="Script" path="res://scripts/ui/locomotion_test_indicator.gd" id="10_locomotion_test"]
 
 [node name="Main" type="Node3D"]
 script = ExtResource("1_main")
@@ -57,3 +59,8 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("9_death")
+
+[node name="LocomotionTestIndicator" type="CanvasLayer" parent="."]
+layer = 100
+process_mode = 3
+script = ExtResource("10_locomotion_test")

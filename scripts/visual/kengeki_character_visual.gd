@@ -28,6 +28,12 @@ const CLIP_JUMP := &"Jump"
 const CLIP_DRAW := &"Sword_Draw"
 const CLIP_SHEATHE := &"Sword_Sheathe"
 const CLIP_COMBO := &"Sword_Combo_OneHand"
+## Explicit dependencies: available in normal F5 gameplay and exported builds.
+const REFINED_CLIPS := {
+	&"walk": preload("res://assets/animations/locomotion/walk.res"),
+	&"run": preload("res://assets/animations/locomotion/run.res"),
+	&"jump": preload("res://assets/animations/locomotion/jump.res"),
+}
 
 ## Ground speed (m/s at model scale 1) of the in-place clips, measured from their root motion.
 const WALK_CLIP_SPEED := 1.154
@@ -169,7 +175,7 @@ func _ready() -> void:
 		if anim_player and anim_player.has_animation(clip):
 			anim_player.get_animation(clip).loop_mode = Animation.LOOP_LINEAR
 	if refined_locomotion:
-		_install_locomotion()
+		refined_locomotion = _install_locomotion()
 	_build_tree()
 	_build_katana()
 	sword_drawn = start_drawn
@@ -178,14 +184,51 @@ func _ready() -> void:
 
 # --- Construction --------------------------------------------------------------------
 
-func _install_locomotion() -> void:
-	# Keep imported originals (including Run used by dodge and Jump) intact.
+func _install_locomotion() -> bool:
+	# Preserve all imported originals, including Run used by dodge.
+	if anim_player == null or skeleton == null:
+		push_error("ASTRA LOCOMOTION TEST: character animation system is missing.")
+		return false
 	var library := AnimationLibrary.new()
-	for clip in ["walk", "run", "jump"]:
-		var resource := load("res://assets/animations/locomotion/%s.res" % clip) as Animation
-		if resource:
-			library.add_animation(clip, resource)
-	anim_player.add_animation_library(&"locomotion", library)
+	for clip in REFINED_CLIPS:
+		if library.add_animation(clip, REFINED_CLIPS[clip]) != OK:
+			push_error("ASTRA LOCOMOTION TEST: could not register " + String(clip))
+			return false
+	if anim_player.add_animation_library(&"locomotion", library) != OK:
+		push_error("ASTRA LOCOMOTION TEST: could not install locomotion library.")
+		return false
+	return true
+
+
+func is_refined_locomotion_active() -> bool:
+	if not refined_locomotion or anim_player == null or anim_tree == null or not anim_tree.active:
+		return false
+	if skeleton == null or skeleton.get_bone_count() != 101:
+		return false
+	for clip in REFINED_CLIPS:
+		var key := StringName("locomotion/" + String(clip))
+		if not anim_player.has_animation(key) or anim_player.get_animation(key) != REFINED_CLIPS[clip]:
+			return false
+	var tree := anim_tree.tree_root as AnimationNodeBlendTree
+	return tree != null and tree.get_node(&"walk").animation == &"locomotion/walk" \
+		and tree.get_node(&"run").animation == &"locomotion/run"
+
+
+func locomotion_test_state() -> String:
+	if not is_refined_locomotion_active():
+		return "NOT ACTIVE — check character/resources"
+	if _action_weight > 0.05:
+		var slot := "a" if _action_slot == 0 else "b"
+		var clip: StringName = anim_tree.tree_root.get_node(StringName("act_" + slot)).animation
+		if _jump == Jump.AIR:
+			return "%s | airborne" % clip
+		if _jump == Jump.LAND:
+			return "%s | landing" % clip
+		return "%s | action blend %.2f" % [clip, _action_weight]
+	var state := String(anim_tree.get("parameters/loco/current_state"))
+	if state in ["walk", "run"]:
+		return "locomotion/%s | phase %.2f" % [state, _gait_phase]
+	return "ACTIVE | idle"
 
 
 func _build_tree() -> void:
