@@ -12,6 +12,13 @@ extends Arena
 ## unreachable islands the enemy nav could snap to. The arch bridge deck bakes at ~1.4 m.
 ## Set to a negative value to disable.
 @export var nav_max_walk_height: float = 1.8
+## After baking, keep only the navmesh polygons connected (by shared edges) to the polygon nearest
+## this point (the combat centre). Recast voxelises collider surfaces, not volumes, so the ground
+## inside tall boxes whose roof the bake box clips (turrets, hall, barracks, kura, large rocks)
+## and the tops of ~1 m colliders (rock_medium) otherwise bake as small unreachable islands that
+## enemy nav could snap to. DEVIATIONS.md #34.
+@export var nav_cull_islands: bool = true
+@export var nav_main_seed: Vector3 = Vector3.ZERO
 
 
 func bake_navigation() -> void:
@@ -30,6 +37,58 @@ func bake_navigation() -> void:
 	nav_region.bake_navigation_mesh(false)
 	if nav_max_walk_height >= 0.0:
 		_prune_high_polygons(nm, nav_max_walk_height)
+	if nav_cull_islands:
+		_prune_disconnected(nm, nav_main_seed)
+
+
+func _prune_disconnected(nm: NavigationMesh, seed_point: Vector3) -> void:
+	var verts := nm.get_vertices()
+	var n := nm.get_polygon_count()
+	if n == 0:
+		return
+	# Polygons sharing an edge (same two vertex indices) are connected.
+	var by_edge := {}
+	var adj: Array = []
+	for i in n:
+		adj.append([])
+	var start := 0
+	var best := INF
+	for i in n:
+		var poly := nm.get_polygon(i)
+		var c := Vector3.ZERO
+		for k in poly.size():
+			var a: int = poly[k]
+			var b: int = poly[(k + 1) % poly.size()]
+			c += verts[a]
+			var key := Vector2i(mini(a, b), maxi(a, b))
+			if by_edge.has(key):
+				var j: int = by_edge[key]
+				adj[i].append(j)
+				adj[j].append(i)
+			else:
+				by_edge[key] = i
+		c /= poly.size()
+		var d := c.distance_squared_to(seed_point)
+		if d < best:
+			best = d
+			start = i
+	var seen := PackedByteArray()
+	seen.resize(n)
+	seen[start] = 1
+	var stack: Array[int] = [start]
+	while not stack.is_empty():
+		var i: int = stack.pop_back()
+		for j in adj[i]:
+			if seen[j] == 0:
+				seen[j] = 1
+				stack.append(j)
+	var keep: Array[PackedInt32Array] = []
+	for i in n:
+		if seen[i] == 1:
+			keep.append(nm.get_polygon(i))
+	if keep.size() == n:
+		return
+	_rebuild(nm, verts, keep)
 
 
 func _prune_high_polygons(nm: NavigationMesh, max_y: float) -> void:
@@ -46,6 +105,10 @@ func _prune_high_polygons(nm: NavigationMesh, max_y: float) -> void:
 			keep.append(poly)
 	if keep.size() == nm.get_polygon_count():
 		return
+	_rebuild(nm, verts, keep)
+
+
+func _rebuild(nm: NavigationMesh, verts: PackedVector3Array, keep: Array[PackedInt32Array]) -> void:
 	var remap := {}
 	var new_verts := PackedVector3Array()
 	nm.clear_polygons()

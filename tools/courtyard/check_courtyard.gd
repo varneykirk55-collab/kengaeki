@@ -241,6 +241,7 @@ func _blueprint_checks(arena: Node, map: RID, space: PhysicsDirectSpaceState3D, 
 	_model_checks(arena)
 	_small_rock_checks(arena, map)
 	_batch4_final_checks(arena, map, space)
+	_nav_connectivity_checks(arena, map, space)
 	_camera_clearance(arena, space, spawns)
 	# Routes that must exist.
 	for pair in [["pond north -> south", Vector3(31, 0, -9), Vector3(31, 0, 9)],
@@ -697,3 +698,81 @@ func _gate_seal_checks(arena: Node, map: RID, space: PhysicsDirectSpaceState3D) 
 				leak += 1
 				print("  INFO  gate seal: path to (%.1f, 0, 38.5) ends at %s" % [x, route[route.size() - 1]])
 		check(leak == 0, "gate seal %s: no navmesh through the gate/wall seam (closest navmesh to outside points reaches z %.2f, paths end inside)" % ["west" if side < 0 else "east", far])
+
+
+## Every navmesh polygon must belong to the walkable region around the combat centre: no islands
+## inside collider volumes (Recast voxelises surfaces, so the ground inside turrets, the hall,
+## barracks, kura or large rocks can bake when the bake box clips their roofs) and none on top of low
+## colliders (rock_medium). Intentional exceptions: none. DEVIATIONS.md #34.
+func _nav_connectivity_checks(arena: Node, map: RID, space: PhysicsDirectSpaceState3D) -> void:
+	var nm: NavigationMesh = (arena.get_node(^"NavigationRegion3D") as NavigationRegion3D).navigation_mesh
+	var v := nm.get_vertices()
+	var n := nm.get_polygon_count()
+	var parent: Array = range(n)
+	var by_edge := {}
+	var cents: Array[Vector3] = []
+	for i in n:
+		var poly := nm.get_polygon(i)
+		var c := Vector3.ZERO
+		for k in poly.size():
+			var a: int = poly[k]
+			var b: int = poly[(k + 1) % poly.size()]
+			c += v[a]
+			var key := Vector2i(mini(a, b), maxi(a, b))
+			if by_edge.has(key):
+				parent[_uf_find(parent, i)] = _uf_find(parent, by_edge[key])
+			else:
+				by_edge[key] = i
+		cents.append(c / poly.size())
+	var sizes := {}
+	for i in n:
+		var r := _uf_find(parent, i)
+		sizes[r] = sizes.get(r, 0) + 1
+	var centre_poly := 0
+	for i in n:
+		if cents[i].distance_squared_to(Vector3.ZERO) < cents[centre_poly].distance_squared_to(Vector3.ZERO):
+			centre_poly = i
+	var main_root := _uf_find(parent, centre_poly)
+	var stray := n - int(sizes.get(main_root, 0))
+	check(sizes.size() == 1 and stray == 0, "navmesh connectivity: %d polygons in %d edge-connected region(s); %d outside the combat-centre region (allowed exceptions: none)" % [n, sizes.size(), stray])
+	# Same thing through the NavigationServer: a path from the combat centre reaches every polygon.
+	var start := NavigationServer3D.map_get_closest_point(map, Vector3.ZERO)
+	var unreached := 0
+	for i in n:
+		var target := NavigationServer3D.map_get_closest_point(map, cents[i])
+		var route := NavigationServer3D.map_get_path(map, start, target, true)
+		var end: Vector3 = route[route.size() - 1] if route.size() > 0 else start
+		if Vector2(end.x - target.x, end.z - target.z).length() > 0.3:
+			unreached += 1
+			if unreached <= 5:
+				print("  INFO  navmesh polygon %d at %s not reached from the centre (path ends %s)" % [i, cents[i], end])
+	check(unreached == 0, "navmesh connectivity: a path from the combat centre reaches all %d polygon centres (%d unreached)" % [n, unreached])
+	# No polygon inside a collider volume (centroid probed 5 cm above the navmesh, which sits ~0.4 m
+	# above the ground it was baked on).
+	var inside := 0
+	for i in n:
+		var pq := PhysicsPointQueryParameters3D.new()
+		pq.position = cents[i] + Vector3.UP * 0.05
+		pq.collision_mask = 1
+		var hits := space.intersect_point(pq, 4)
+		if not hits.is_empty():
+			inside += 1
+			if inside <= 5:
+				print("  INFO  navmesh polygon %d at %s is inside %s" % [i, cents[i], (hits[0].collider as Node).name])
+	check(inside == 0, "navmesh connectivity: no polygon centre inside a collider volume (%d inside)" % inside)
+	# The islands found on Oct 30 (11:15 PM EDT) are gone: interiors of the 4 turrets, hall, barracks,
+	# kura, ROCKL1/ROCKL3, and the tops of ROCKM1/2/3/6/7/8.
+	var spots := {"turret NW": Vector3(-38.3, 0, -44.3), "turret NE": Vector3(38.3, 0, -44.3),
+		"turret SW": Vector3(-38.3, 0, 32.3), "turret SE": Vector3(38.3, 0, 32.3),
+		"hall": Vector3(0, 0, -39), "barracks": Vector3(-36, 0, 0), "kura": Vector3(-31, 0, -36)}
+	for key in spots:
+		var cp := NavigationServer3D.map_get_closest_point(map, spots[key])
+		var d := Vector2(cp.x - spots[key].x, cp.z - spots[key].z).length()
+		check(d > 1.0, "navmesh connectivity: no navmesh inside %s (nearest %.2f m from its interior)" % [key, d])
+
+
+func _uf_find(p: Array, i: int) -> int:
+	while p[i] != i:
+		p[i] = p[p[i]]
+		i = p[i]
+	return i

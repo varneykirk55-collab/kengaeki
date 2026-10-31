@@ -570,3 +570,16 @@ moving-camera look.
   `GateNavSlab` inside the gate box removes it (DEVIATIONS #31). Deviations #29–#33 approved by Bill.
 - **Checks (headless):** `check_courtyard.gd` PASS, 325 checks, 0 FAIL (navmesh 439 polygons / 399
   vertices); `ref_check.gd` PASS (0 broken, 0 unreferenced); gameplay tests 109 passed / 8 failed (the same 8 pre-existing failures).
+
+## 16. Navmesh island cull and connectivity check (Oct 30, 2026, ~11:25 PM EDT)
+
+- A connectivity scan of the baked navmesh found 15 unreachable islands (29 of 439 polygons):
+  the ground inside the 4 turrets, hall, barracks, kura, ROCKL1 and ROCKL3, and the tops of
+  ROCKM1/2/3/6/7/8 (~1.4 m). The gate's island was already gone (`GateNavSlab`, §15).
+- Fix: `courtyard_arena.gd` now culls every polygon not edge-connected to the polygon nearest the
+  combat centre, after the existing >1.8 m prune (`nav_cull_islands`, `nav_main_seed`). No collider
+  changed. Navmesh: 439 → 410 polygons, 1 region. DEVIATIONS #34.
+- New `_nav_connectivity_checks` in `check_courtyard.gd`: one edge-connected region; a server path from
+  the centre reaches all polygon centres; no polygon centre inside a collider; no navmesh inside the
+  turrets / hall / barracks / kura. No intentional exceptions. Verified that it fails with the cull off.
+- Checks (headless): `check_courtyard.gd` PASS, 335 checks, 0 FAIL; `ref_check.gd` PASS; gameplay tests 109 passed / 8 failed (same 8 pre-existing).
