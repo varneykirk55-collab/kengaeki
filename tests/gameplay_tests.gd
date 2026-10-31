@@ -786,6 +786,12 @@ func test_character_asset() -> void:
 	var katanas := player.find_children("*", "", true, false).filter(func(n): return n is Katana)
 	check(katanas.size() == 1 and player.weapon.katana == katanas[0], "character: exactly one katana, wired to the weapon component")
 	check(_katana_bone() == &"CC_Base_R_Hand", "character: katana held in the right hand bone")
+	var kat := player.weapon.katana
+	check(kat.scene_file_path == "res://scenes/weapons/kengeki_katana.tscn" and kat.get_node_or_null("Model") != null, "character: player wields the Kengeki katana GLB")
+	var grip_gap := kat.global_position.distance_to(_bone_world("CC_Base_R_Hand"))
+	check(grip_gap < 0.1, "character: katana grip sits in the palm (%.3f m from the hand bone)" % grip_gap)
+	var saya := v.find_child("KatanaSaya", true, false) as Node3D
+	check(saya != null and (saya.get_parent() as BoneAttachment3D).bone_name == &"CC_Base_Hip", "character: saya worn on the hip while the katana is drawn")
 	var mi := v.model.find_children("*", "MeshInstance3D", true, false)[0] as MeshInstance3D
 	var mat := mi.mesh.surface_get_material(0) as BaseMaterial3D
 	check(mat != null and mat.albedo_texture != null and mat.normal_texture != null, "character: material keeps albedo and normal textures")
@@ -902,6 +908,12 @@ func test_sword_draw_and_sheathe() -> void:
 	await seconds(0.8)
 	check(not player.sword_drawn and player.state == Player.State.MOVE, "sheathe: katana sheathed, control restored")
 	check(_katana_bone() == &"CC_Base_Hip", "sheathe: katana moved to the hip")
+	var saya := v.find_child("KatanaSaya", true, false) as Node3D
+	if saya:
+		var tip_in := saya.to_local(player.weapon.katana.blade_tip.global_position)
+		var mouth := saya.to_local(player.weapon.katana.blade_base.global_position)
+		var box := (saya as MeshInstance3D).get_aabb().grow(0.01)
+		check(box.has_point(tip_in) and box.has_point(mouth), "sheathe: blade sits inside the saya")
 	await tap(&"toggle_sword")
 	await seconds(0.3)
 	check(_katana_bone() == &"CC_Base_Hip", "draw: katana still at the hip before the grab")

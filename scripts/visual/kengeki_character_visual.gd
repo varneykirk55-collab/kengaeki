@@ -86,6 +86,8 @@ const JUMP_FOOT_LIFT := [
 ## and down through the sash.
 @export var sheath_grip_position: Vector3 = Vector3(0.09, 0.64, 0.13)
 @export var sheath_blade_direction: Vector3 = Vector3(0.28, -0.38, -1.0)
+## Worn katana-style: cutting edge up, back of the blade (and the saya's curve) down.
+@export var sheath_edge_up: bool = true
 @export var start_drawn: bool = true
 @export var equip_speed: float = 1.25
 ## Walk is a slow catwalk (1.8 m/s at this scale); gameplay walks at 4.6 m/s. The cadence is
@@ -270,12 +272,25 @@ func _build_katana() -> void:
 	var blade := sheath_blade_direction.normalized()
 	var z := -blade
 	var y := (Vector3.UP - z * Vector3.UP.dot(z)).normalized()
+	if sheath_edge_up:
+		y = -y
 	var x := y.cross(z)
 	var sheath_model := Transform3D(Basis(x, y, z).scaled(Vector3.ONE * inv_scale), sheath_grip_position)
 	var hip_rest := skeleton.get_bone_global_rest(skeleton.find_bone(hip_bone))
 	_hip_xform = hip_rest.affine_inverse() * sheath_model
 	_hand_attach = _attachment(hand_bone)
 	_hip_attach = _attachment(hip_bone)
+	# The saya stays on the hip, exactly where the sheathed blade sits inside it.
+	var saya: Node3D = null
+	if not _katana.scabbard_path.is_empty():
+		saya = _katana.get_node_or_null(_katana.scabbard_path) as Node3D
+	if saya:
+		var saya_local := _relative_to(saya, _katana)
+		saya.owner = null  # leaves the GLB instance
+		saya.get_parent().remove_child(saya)
+		saya.name = "KatanaSaya"
+		_hip_attach.add_child(saya)
+		saya.transform = _hip_xform * saya_local
 
 
 ## Katana grip in hand-bone space, derived from the hand's anatomy in the rest pose rather
@@ -302,6 +317,16 @@ func _grip_transform(inv_scale: float) -> Transform3D:
 	var x := y.cross(z)
 	var origin := knuckle * 0.55 + palm * grip_palm_depth
 	return Transform3D(Basis(x, y, z).orthonormalized().scaled(Vector3.ONE * inv_scale), origin)
+
+
+static func _relative_to(node: Node3D, ancestor: Node3D) -> Transform3D:
+	var t := Transform3D.IDENTITY
+	var n: Node = node
+	while n and n != ancestor:
+		if n is Node3D:
+			t = (n as Node3D).transform * t
+		n = n.get_parent()
+	return t
 
 
 func _attachment(bone: StringName) -> BoneAttachment3D:

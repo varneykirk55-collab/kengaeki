@@ -8,6 +8,12 @@ extends Node3D
 @export var build_placeholder: bool = true
 @export var blade_length: float = 0.74
 @export var handle_length: float = 0.27
+## Optional scabbard (saya) inside this scene, authored in its sheathed position around the
+## blade. Wielders that support it (KengekiCharacterVisual) move it to the hip so it stays
+## there while the sword is drawn; otherwise it simply stays on the sword.
+@export var scabbard_path: NodePath
+
+var scabbard: Node3D
 
 var blade_base: Marker3D
 var blade_tip: Marker3D
@@ -28,6 +34,8 @@ func _ready() -> void:
 		blade_tip.name = "BladeTip"
 		blade_tip.position = Vector3(0, 0.035, -0.12 - blade_length)
 		add_child(blade_tip)
+	if not scabbard_path.is_empty():
+		scabbard = get_node_or_null(scabbard_path) as Node3D  # null once a wielder moved it
 	if build_placeholder:
 		_build_placeholder_mesh()
 	_build_blade_area()

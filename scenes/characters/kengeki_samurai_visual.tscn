@@ -1,6 +1,8 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scripts/visual/kengeki_character_visual.gd" id="1_vis"]
+[ext_resource type="PackedScene" path="res://scenes/weapons/kengeki_katana.tscn" id="2_katana"]
 
 [node name="Visual" type="Node3D"]
 script = ExtResource("1_vis")
+katana_scene = ExtResource("2_katana")

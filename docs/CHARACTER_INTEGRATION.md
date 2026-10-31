@@ -85,14 +85,19 @@ Verified: the hips stay within 0.02 m of the capsule while walking and sprinting
 
 ## Katana
 
-* The mesh has no sword or scabbard, so the game's existing `Katana` scene remains the only
-  sword. A test confirms there is exactly one.
+* The character mesh has no sword. The player wields `scenes/weapons/kengeki_katana.tscn`, which
+  wraps the Kengeki katana GLB (`assets/models/weapons/kengeki_katana/`) in the existing `Katana`
+  script (`build_placeholder = false`). Enemies keep the placeholder `scenes/weapons/katana.tscn`.
+  A test confirms there is exactly one katana on the player.
 * Drawn: it is attached to `CC_Base_R_Hand` with a `BoneAttachment3D`. The grip is computed from
   the hand's own bones: the blade runs along the knuckle line from little finger to index, its back
   faces the wrist, and the grip sits in the palm. At the middle of each hit window the blade points
   at the target.
 * Sheathed: it is attached to `CC_Base_Hip`, with the hilt in front of the left hip and the blade
-  angled back and down.
+  angled back and down, edge up (`sheath_edge_up`).
+* The saya (scabbard) is part of the GLB. `Katana.scabbard_path` names it, and the visual moves it
+  to the hip attachment as `KatanaSaya`, so it stays on the left hip while the sword is drawn and
+  the sheathed blade sits inside it.
 * It changes attachment on the clips' own contact frames: at 0.50 s of `Sword_Draw` (right hand on
   the hilt) and at 0.83 s of `Sword_Sheathe`.
 * The game starts with the katana drawn, preserving all existing behaviour. While sheathed, attack
@@ -125,6 +130,20 @@ These states have no clip among the seven, so they use simple stand-ins:
 
 Not verified: a human actually playing with keyboard, mouse or gamepad. All input was simulated.
 
+### Katana asset
+
+* Source: `kengeki katana` GLB (Blender I/O 4.0.43 export), 30,037,624 bytes,
+  sha256 `f7fd208e8b5cad9440910055930b20ea4ae59ab9a0e370339dee18c2d185a5d8`. It is not in git.
+* Repacked to 4.99 MB without remodelling. The vertex data is unchanged.
+  * The single mesh is split into its two parts, `Katana_Sword` and `Katana_Saya`.
+  * Node transforms scale it by 0.85: the blade is 0.71 m and the overall length is 1.0 m.
+  * The origin is moved to the grip point, 6.5 cm behind the tsuba. The blade runs along -Z with
+    its back toward +Y, which is the `Katana` convention.
+  * The saya is aligned over the blade.
+  * The three 4096² textures are now 2048²: normal as PNG, base colour and metal/roughness as JPEG.
+* `BladeBase` / `BladeTip` sit at the real blade root and tip, so the trail and sparks follow
+  the curved blade.
+
 ## Known issues
 
 1. **Release build, shutdown only:** two `Attempt to disconnect a nonexistent connection …
@@ -142,8 +161,10 @@ Not verified: a human actually playing with keyboard, mouse or gamepad. All inpu
 5. **Cosmetic, from the asset (not changed):**
    * Knuckle edges stretch during the fist grip. No visible collapse at gameplay distance.
    * The thigh armour plates flare outward while running (skin weights).
-   * There is no scabbard model, so the bare placeholder blade sits at the hip.
-   * The katana is still the box-and-disc placeholder.
+   * The Run, Jump and Dodge poses hold the hand behind the hip, so the first ~10 cm of the
+     blade passes through the back of the right thigh armour. The placeholder did the same.
+   * While `Sword_Draw` and `Sword_Sheathe` play, the blade passes through the torso before the swap
+     frame (the clips have no prop).
 6. The Jump has no anticipation crouch, so it is responsive: take-off is immediate and the
    clip starts at its take-off frame.
 

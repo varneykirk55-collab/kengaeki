@@ -1,0 +1,19 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/visual/katana.gd" id="1_katana"]
+[ext_resource type="PackedScene" uid="uid://ta2jy3gvvnb2" path="res://assets/models/weapons/kengeki_katana/kengeki_katana.glb" id="2_model"]
+
+[node name="Katana" type="Node3D"]
+script = ExtResource("1_katana")
+build_placeholder = false
+blade_length = 0.7
+handle_length = 0.255
+scabbard_path = NodePath("Model/Katana_Saya")
+
+[node name="BladeBase" type="Marker3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.012, -0.123)
+
+[node name="BladeTip" type="Marker3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.086, -0.823)
+
+[node name="Model" parent="." instance=ExtResource("2_model")]
