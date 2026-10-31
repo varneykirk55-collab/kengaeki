@@ -322,3 +322,63 @@ vs the 2.2 m minimum). Gameplay tests: 109 passed / 8 failed (the same 8 as the 
   in contrast. Worth a look on a real GPU before tuning.
 - Keep backdrop (06): from the courtyard the main hall hides the keep's lower tiers; only the top
   two tiers show above the hall roof.
+
+## 12. BJORN batch 3: stone slab bridge and trees (Oct 30, 2026, ~8:55 PM EDT)
+Kirk's 8:38 PM brief; BJORN's "Batch 3 notes" in `library/HANDOFF.md` (read only).
+
+**Intake.** `sync_assets.py --apply` for `tree_pine_kuromatsu`, `tree_sakura`, `tree_maple_momiji`,
+and `bridge_stone_slab --variant deck2m` (only `bridge_stone_slab_deck2m.glb` is copied; the main
+2.667 m-deck file is not needed because `MODEL_VARIANT` points the generator at the variant).
+`generate_lods=true` on all four imports; textures VRAM-compressed by `vram_textures.py`. Graybox
+fallbacks kept (trunk cylinder + canopy, slab deck box) and used whenever a GLB is missing.
+Size checks: trees fitted to Bill's height (±10%, footprint may only be smaller or ≤ +10%), slab
+11 × 0.4 × 2.667 exact (authored size).
+
+**Slab bridge** (DEVIATIONS #25): (26, 0, 0), yaw 90, `model_offset` y −0.394. Deck top at y 0.000
+(−0.005 … +0.002 along the walkable deck), supports to −0.394 (0.094 m under the water),
+deck ends 0.5 m onto each bank. Deck box collider 2.0 m wide; invisible rail boxes at x 24.925 /
+27.075, 0.90 m above the deck. Nav crossing: path low y 0.40 (navmesh), 16.0 m, centred on x 26.
+
+**Trees** (DEVIATIONS #23): 6 pines, 5 sakura, 3 maples, one shared mesh per species, placed by
+trunk at Bill's (x, z). Trunk-only cylinders (pine r0.45 h2.5 offset, sakura r0.4 h2.3, maple
+r0.2 h2.0); canopies don't collide. PINE3 / PINE6 yaws changed to stop canopy clipping
+(`tools/courtyard/tree_fit.py`: 0 clips at 0.25 m margin). Visibility range end 100 m (+10 m
+margin); Godot's auto-LOD only saved ~3% at bias 0.05. Path spurs P5/P6 split at the pond (#24).
+
+**Checks (headless, not visual/gameplay verification).** `check_courtyard.gd` PASS, 188 checks
+(navmesh 379 polygons): 14 trees with 1 collider each, all outside the 40 × 40 combat square,
+nearest spawn 4.0 m (SAKURA5); new routes (east path N/S, west path, gate forecourt → sakura
+lawn W/E) pass; camera clearance PASS incl. the slab deck (worst 4.20 m there). Gameplay tests
+109 passed / 8 failed (same 8 as the base).
+
+**Budget** (`asset_budget.py`) before → after:
+
+| | Before batch 3 | After batch 3 |
+|---|---|---|
+| Scene triangles (instanced) | 1,243,452 (124,134 unique) | 1,407,382 (160,120 unique) |
+| Texture VRAM (BJORN assets, compressed) | 31.46 MB | 42.64 MB |
+| Git cost (BJORN assets) | 45.09 MB | 67.98 MB |
+| Godot monitors, video / texture memory | 312.0 / 166.5 MB | 324.8 / 177.2 MB |
+
+**Render cost** (same method as §11, windowed llvmpipe, primitives include shadow passes):
+
+| View | Draw calls before → after | Primitives before → after |
+|---|---|---|
+| 01 overview from gate | 98 → 89 | 853,630 → 1,057,958 |
+| 02 combat centre, eye height | 66 → 58 | 692,652 → 859,532 |
+| 03 pond + arch bridge | 74 → 71 | 620,292 → 700,754 |
+| 04 wall / turret seam | 27 → 25 | 457,154 → 551,624 |
+| 05 gate interior | 16 → 15 | 271,188 → 306,138 |
+| 06 keep backdrop | 35 → 31 | 661,636 → 767,760 |
+| **Total** | **316 → 289** | **3,556,552 → 4,243,766 (+19%)** |
+
+Draw calls fell because each graybox tree (trunk + canopy, 2 meshes) became one mesh; primitives
+rose with the 10–12k-triangle trees, mostly in shadow passes. Real tree LODs (~3–4k) from BJORN
+are the fix if this matters on modest PCs.
+
+**Screenshots** replaced (`docs/courtyard/screenshots/`, `/workspace/kengeki_shots/`); the
+previous set is in `/workspace/kengeki_shots/before_batch3/`. Seen in the screenshots: trees stand
+on the ground with no floating or wall/turret clipping (01, 02, 04, 06 + close-ups of PINE3, PINE6,
+sakura and maples); no path strip over the pond; slab supports visible under the deck and the deck
+meets the path ends flush (03). The slab stone reads near-white in sunlight, paler than the wall
+stone. Maple trunks look slim; the pine root flare extends past its collider.

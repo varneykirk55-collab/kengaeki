@@ -20,4 +20,8 @@ build box (not legal advice; some terms are still unverified there).
 | `Courtyard/bridge_arched_taikobashi` | Tencent Hunyuan 3D (AI-generated) | BJORN pipeline: 8,000 tris, 1024² textures, non-uniform fit to 13 × 1.8 × 2.4 m (anisotropy 3.14). v2 (Oct 30, 8:06 PM EDT): symmetric, 8 piers extended down, origin at the pier bottoms, 13 × 2.05 × 2.4 m, 8,000 tris; v1 stays in git history and in BJORN's library as `_v1.glb` |
 | `Courtyard/barracks_nagaya` | Tencent Hunyuan 3D (AI-generated) | BJORN pipeline: 12,000 tris, 1024² textures (JPEG albedo), 24 × 6 × 6 m |
 | `Courtyard/storehouse_kura` | Tencent Hunyuan 3D (AI-generated) | BJORN pipeline: 6,000 tris, 1024² textures, 8 × 7 × 6 m, door +Z |
+| `Courtyard/bridge_stone_slab` (`bridge_stone_slab_deck2m.glb`) | Tencent Hunyuan 3D (AI-generated) | BJORN pipeline: 2,000 tris, 1024² textures, 11 × 0.4 × 2.667 m (deck 2.0 m wide variant) |
+| `Courtyard/tree_pine_kuromatsu` | Tencent Hunyuan 3D (AI-generated) | BJORN pipeline: 12,000 tris, 1024² textures, 6.25 × 7 × 3.58 m, origin at trunk base |
+| `Courtyard/tree_sakura` | Tencent Hunyuan 3D (AI-generated) | BJORN pipeline: 11,986 tris, 1024² textures, 5.81 × 6 × 5.22 m, origin at trunk base |
+| `Courtyard/tree_maple_momiji` | Tencent Hunyuan 3D (AI-generated) | BJORN pipeline: 10,000 tris, 1024² textures, 4.04 × 5 × 4.04 m, origin at trunk base |
 | `Courtyard/castle_keep_tenshu` | Tencent Hunyuan 3D (AI-generated) | BJORN pipeline: 20,000 tris, 1024² textures (JPEG albedo), 30 × 28 × 22 m, backdrop only |
