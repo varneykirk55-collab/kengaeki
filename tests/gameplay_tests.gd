@@ -207,7 +207,13 @@ func test_camera() -> void:
 	cam._unhandled_input(zoom)
 	check(cam.distance > d0, "camera: adjustable distance (%.1f -> %.1f)" % [d0, cam.distance])
 	# Collision: back the player against the south wall so the camera would be inside it.
-	player.global_position = Vector3(0, 0.05, 19.0)
+	# The wall is found by a ray along +Z so this works in any arena (placeholder wall at z 20,
+	# courtyard gate at z 30); falls back to the placeholder's z 19 if nothing is hit.
+	await get_tree().physics_frame
+	var ray := PhysicsRayQueryParameters3D.create(Vector3(0, 1.5, 0), Vector3(0, 1.5, 60), 1)
+	ray.exclude = [player.get_rid()]
+	var wall := player.get_world_3d().direct_space_state.intersect_ray(ray)
+	player.global_position = Vector3(0, 0.05, (wall.position.z - 1.0) if wall else 19.0)
 	cam.yaw = 0.0
 	cam.pitch = 0.0
 	cam.snap_behind_target()

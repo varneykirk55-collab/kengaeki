@@ -24,7 +24,9 @@ single file with the game data embedded. It has not been launched on Windows. Se
 **From source:**
 1. Install [Godot 4.3](https://godotengine.org/download/archive/4.3-stable/) (standard build, not .NET).
 2. In the Project Manager, choose **Import** and pick `project.godot` in this folder.
-3. Press **F5**. The main scene is `scenes/main.tscn`.
+3. Press **F5**. The main scene is `scenes/main.tscn`, which plays in the castle courtyard
+   (`environment/courtyard/scenes/castle_courtyard.tscn`). The original placeholder arena is still in
+   `scenes/arena/arena.tscn`; switching back is the one Arena `ext_resource` line in `main.tscn`.
 
 **Re-exporting:** install the 4.3 export templates, then use *Project → Export → Windows Desktop*
 (the preset is already set up). Or run:

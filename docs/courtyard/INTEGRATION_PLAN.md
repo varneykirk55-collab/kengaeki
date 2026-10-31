@@ -583,3 +583,18 @@ moving-camera look.
   the centre reaches all polygon centres; no polygon centre inside a collider; no navmesh inside the
   turrets / hall / barracks / kura. No intentional exceptions. Verified that it fails with the cull off.
 - Checks (headless): `check_courtyard.gd` PASS, 335 checks, 0 FAIL; `ref_check.gd` PASS; gameplay tests 109 passed / 8 failed (same 8 pre-existing).
+
+## 17. Courtyard becomes the main scene (Oct 31, 2026)
+
+- `main` was created by merging `feature/kengeki-courtyard` (42e87e5) with `feature/kengeki-music-tracks`
+  (83b6a7a). No conflicts. Outside the courtyard and music paths the tree is identical to the
+  `character-integration` tip (ed5cba4), so the character, katana, combat and UI code is unchanged.
+- The final swap from §2 item 2 is done (Kirk): `scenes/main.tscn` now instances
+  `castle_courtyard.tscn`. `scenes/arena/arena.tscn` and `main_courtyard.tscn` are kept. Reverting is the
+  same one line.
+- `tests/gameplay_tests.gd` `test_camera` used to put the player at z 19 against the placeholder's
+  south wall. It now finds the first world collider along +Z from the centre with a ray and stands
+  1 m in front of it, so it works in both arenas. No other test touches arena geometry: all other
+  placements are within the courtyard's 40 x 40 m collider-free combat square.
+- **Not run:** no Godot binary was available in the merge environment, so none of the headless suites
+  (`tools/run_tests.sh`, `check_courtyard.gd`, `ref_check.gd`) ran on this commit. Run them locally.
