@@ -266,3 +266,59 @@ deck at z 0, ±3, ±5.5, gate blocking at z 30, keep without collision, spawns, 
 unchanged; gameplay tests 109 passed / 8 failed (the same 8 character-GLB failures as the base).
 Not verified: anything visual (seams, the 0.11 m bridge lip, z-fighting, lighting), FPS and draw
 calls. These need a windowed run.
+
+## 11. Performance pass, tighter colliders, bridge v2 and windowed screenshots (Oct 30, 2026, ~8:20 PM EDT)
+Kirk's 7:52 PM brief plus BJORN's bridge v2 (8:06 PM).
+
+**Bridge v2.** Synced with `sync_assets.py --apply bridge_arched_taikobashi` (sha256 `ed0d5937…`,
+13.00 × 2.05 × 2.40 m, 8,000 tris, git 4.59 MB). Placement unchanged; sink 0.40 m, new symmetric
+`ARCH_PROFILE`, 14 deck chords + 28 rail boxes (DEVIATIONS #17). Measured: both deck ends within
+0.007 m of the banks; piers end at −0.40 (0.10 m under the water). Arch crossing PASS (path y
+0.40–1.15, 15.2 m), rails 1.00–1.05 m above the deck.
+
+**Mesh LOD.** `generate_lods=true` is set in all 10 BJORN `.glb.import` files. Godot's generator
+output (ImporterMesh probe, merge/split angles 60/25, 90/60, 180/180): wall 13,134 → one LOD of
+~5.4k; hall 25k → 14.6k; gate 20k → 13.0k; keep 20k → 14.6k; bridge 8k → 3.9k; lantern 8k → 5.9k /
+3.0k; turret, barracks, kura: no LOD. UV seams lock most vertices, so a hand-made LOD from BJORN is
+the real fix (DEVIATIONS #16). Applied per instance: wall `model_lod_bias` 0.3; lanterns hidden
+beyond 55 m (+5 m margin). Collisions were already one box per straight wall run (5 boxes).
+
+**Render cost** (`tools/courtyard/render_views.gd`, windowed Forward+ on Vulkan llvmpipe under
+xvfb, 1280 × 720, `Performance` monitors after 8 frames per view; primitives include shadow passes).
+"Before" = the previous settings reproduced with `--lod-bias=1 --shadow-mode=2 --shadow-dist=90`.
+
+| View | Draw calls before → after | Primitives before → after | Objects before → after |
+|---|---|---|---|
+| 01 overview from gate | 149 → 98 | 2,202,486 → 853,630 | 336 → 226 |
+| 02 combat centre, eye height | 109 → 66 | 1,857,352 → 692,652 | 244 → 159 |
+| 03 pond + arch bridge | 110 → 74 | 897,742 → 620,292 | 174 → 132 |
+| 04 wall / turret seam | 46 → 27 | 893,742 → 457,154 | 87 → 48 |
+| 05 gate interior | 28 → 16 | 482,602 → 271,188 | 47 → 28 |
+| 06 keep backdrop | 71 → 35 | 1,219,604 → 661,636 | 129 → 71 |
+| **Total** | **513 → 316 (−38%)** | **7,553,528 → 3,556,552 (−53%)** | **1017 → 664** |
+
+Breakdown (totals, same views): shadows off entirely 1.91M primitives / 139 draw calls (so shadow
+passes were ~74% of the cost); 2 splits alone 4.67M; LOD bias 0.2 on every mesh alone 4.79M; 2 splits + LOD bias 0.3 on every mesh 3.50M; shipped (2 splits, bias 0.3 on walls only) 3.56M.
+VRAM: 312 MB video memory, 166.5 MB textures (unchanged). llvmpipe FPS is not representative of a
+Windows GPU, so no FPS is reported.
+
+**Colliders** fitted to the measured meshes (DEVIATIONS #20). `check_courtyard.gd` PASS, 140
+checks (navmesh 377 polygons): spawns, nav paths, routes, combat area, roofs/wall tops not
+walkable, arch crossing and rails, gate blocking at z 30.68, keep without collision, model sizes,
+and a new camera-clearance check (worst free arm 2.81 m, at the hall forecourt and barracks lane,
+vs the 2.2 m minimum). Gameplay tests: 109 passed / 8 failed (the same 8 as the base).
+
+**Screenshots** (`docs/courtyard/screenshots/*.jpg`, 41–75 KB each; also `/workspace/kengeki_shots/`):
+- No missing textures on BJORN's models. Trees, rocks, shrubs and paths are still untextured
+  graybox primitives (expected until those assets arrive).
+- No z-fighting seen (gravel, paths and ground planes are offset).
+- Wall/turret seams (04) and wall/gate junctions (05): closed, no see-through gaps; the patched gate
+  fillers read as continuous wall.
+- Bridge v2 (03): both ends sit on the banks with no lip; piers reach into the water; nothing floats.
+- Found and fixed: the pond water was hidden under the outer grass plane in all earlier builds
+  (DEVIATIONS #22).
+- Lighting: readable at eye height (02, 05, 06) with warm late-afternoon light and soft shadows.
+  The overview (01) is washed out: fog 0.004 plus a flat beige sky make the far half hazy and low
+  in contrast. Worth a look on a real GPU before tuning.
+- Keep backdrop (06): from the courtyard the main hall hides the keep's lower tiers; only the top
+  two tiers show above the hall roof.

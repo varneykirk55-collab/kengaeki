@@ -157,6 +157,12 @@ class Scene:
                 props.append(("model_scale_xyz", vec(fit["scale_xyz"])))
             if getattr(self, "authored_size", None):
                 props.append(("authored_size", vec(self.authored_size)))
+            rnd = MODEL_RENDER.get(self.name, {})
+            if "lod_bias" in rnd:
+                props.append(("model_lod_bias", "%g" % rnd["lod_bias"]))
+            if "vis_end" in rnd:
+                props.append(("model_visibility_range_end", "%g" % rnd["vis_end"]))
+                props.append(("model_visibility_range_end_margin", "%g" % rnd.get("vis_margin", 0)))
         self.node(self.name, "Node3D", None, props)
         self.node("Graybox", "Node3D", ".")
         if collision:
@@ -196,9 +202,29 @@ MODEL_VARIANT = {"stone_lantern_toro_2m": "stone_lantern_toro_lod8k"}
 # Integration fit applied to the imported model only (graybox and collision unaffected unless noted).
 # Every entry is a documented deviation (docs/courtyard/DEVIATIONS.md).
 MODEL_FIT = {
-    # Sink the arch bridge 0.15 m so its north deck end sits flush on the bank (its ends are
-    # 0.15 m / 0.26 m thick above y=0 in the GLB); the arena colliders follow the sunk deck.
-    "bridge_arched_taikobashi": dict(offset=(0, -0.15, 0)),
+    # Bridge v2 (BJORN, Oct 30 8:06 PM): y=0 is the pier bottoms. Sink 0.40 m so both deck ends
+    # sit flush on the banks (deck-end top 0.393-0.407 in model space) and the piers end 0.10 m
+    # under the water surface (-0.30). The arena colliders follow the sunk deck (ARCH_PROFILE).
+    "bridge_arched_taikobashi": dict(offset=(0, -0.40, 0)),
+}
+
+# Render cost settings for the imported models (CourtyardProp exports). Every BJORN GLB is
+# imported with meshes/generate_lods=true (Godot's default, kept explicit in the .import files).
+# Godot's generator gives these meshes at most one extra LOD (UV seams lock most vertices), so:
+#   lod_bias < 1 makes the wall modules (78 instances, 82% of the scene's triangles) use their
+#   5.4k-triangle LOD sooner; vis_end culls small props beyond the given distance (m), with a
+#   hysteresis margin. Measured with tools/courtyard/render_views.gd (INTEGRATION_PLAN.md).
+MODEL_RENDER = {
+    "wall_segment_4m": dict(lod_bias=0.3),
+    "stone_lantern_toro_2m": dict(vis_end=55.0, vis_margin=5.0),
+}
+
+# Authored-size overrides used by the 10% checks (sync_assets.py, check_courtyard.gd) where the
+# delivered asset legitimately differs from layout_data.py. Documented in DEVIATIONS.md.
+AUTHORED_SIZE = {
+    # Bill: 13 x 1.8 x 2.4. v2 adds 0.25 m of pier below the old base (hidden under the water),
+    # so the model is 2.05 m tall; above the bank it is 1.65 m.
+    "bridge_arched_taikobashi": (13, 2.05, 2.4),
 }
 
 
@@ -252,12 +278,13 @@ ARCH = {"wall_segment_4m", "corner_turret", "main_gate_yaguramon", "main_hall_go
 
 
 # ---- Arch bridge walking surface (batch 2, Oct 30) ----
-# Deck-top profile of BJORN's bridge_arched_taikobashi.glb (local X = length, model space, y up),
-# measured with tools/courtyard/glb_probe.py (vertical ray casts on the deck centre line). The
-# deck is not symmetric: the -X end is 0.26 m thick, the +X end 0.15 m. Ends are joined to the
-# bank by lead-in chords from y=0 at |x| = 7 m (0.5 m onto the bank, under the deck end).
-ARCH_PROFILE = [(-5.0, 0.47), (-3.5, 0.65), (-2.0, 0.78), (-0.75, 0.85), (0.75, 0.845),
-                (2.0, 0.78), (3.5, 0.63), (4.75, 0.40), (5.5, 0.17)]
+# Deck-top profile of BJORN's bridge_arched_taikobashi.glb v2 (local X = length, model space,
+# y up; HANDOFF "Bridge v2 fix" / stats.json v2_fix, re-measured with glb_probe.py). The v2
+# deck is symmetric. Ends are joined to the bank by lead-in chords from y=0 at |x| = 7 m
+# (0.5 m onto the bank, under the deck end).
+ARCH_PROFILE = [(-5.5, 0.423), (-5.0, 0.580), (-4.75, 0.651), (-3.5, 0.882), (-2.0, 1.033),
+                (-0.75, 1.094), (0.0, 1.104), (0.75, 1.094), (2.0, 1.033), (3.5, 0.882),
+                (4.75, 0.651), (5.0, 0.580), (5.5, 0.423)]
 ARCH_LEADIN_X = 7.0
 ARCH_DECK_T = 0.3     # collider / graybox deck thickness
 ARCH_RAIL_H = 1.0     # rail top 1.0 m above the walking surface (addendum 6:40 PM)
@@ -400,7 +427,7 @@ def prefab_path(asset):
 
 def build_prefab(asset, size):
     s = Scene(asset, resolve_model_path(asset))
-    s.authored_size = tuple(size)
+    s.authored_size = tuple(AUTHORED_SIZE.get(asset, size))
     sx, sy, sz = size
     s.begin(collision=asset not in ARCH and asset not in ("shrub_azalea", "rock_small_cluster"))
     if asset == "wall_segment_4m":
@@ -513,15 +540,26 @@ def courtyard_arena(L):
     col("Ground", "G3_NorthOfPond", (30, -0.5, -25.5), (11, 1, 41))
     col("Ground", "G4_SouthOfPond", (30, -0.5, 19.5), (11, 1, 29))
     col("Ground", "PondBasin", (30, -1.3, 0), (11, 0.2, 10))
-    col("WallRuns", "N", (0, 2.5, -46), (72, 5, 1.6))
-    col("WallRuns", "SW", (-22, 2.5, 34), (28, 5, 1.6))
-    col("WallRuns", "SE", (22, 2.5, 34), (28, 5, 1.6))
-    col("WallRuns", "E", (40, 2.5, -6), (1.6, 5, 72))
-    col("WallRuns", "W", (-40, 2.5, -6), (1.6, 5, 72))
+    # Simple boxes fitted to the measured BJORN mesh bounds (ground footprint, full height;
+    # tools/courtyard/glb_probe.py, DEVIATIONS.md #20). One box per straight wall run, each
+    # running 0.1 m into the turret / gate boxes at its ends so no gap opens at a seam.
+    WALL_H, WALL_T = 4.74, 1.5            # wall_segment_4m: y 0..4.74, base z -0.75..0.74
+    TUR_HX, TUR_HZ, TUR_H = 3.74, 3.73, 10.72
+    GATE_HX, GATE_Z0, GATE_Z1, GATE_H = 6.76, -3.08, 3.32, 10.91   # local; placed at yaw 180
+    n_x = 40 - TUR_HX + 0.1               # N run: turret face to turret face
+    col("WallRuns", "N", (0, WALL_H / 2, -46), (2 * n_x, WALL_H, WALL_T))
+    ew_z0, ew_z1 = -46 + TUR_HZ - 0.1, 34 - TUR_HZ + 0.1   # E/W runs: N turret face to S turret face
+    for nm, x in (("E", 40), ("W", -40)):
+        col("WallRuns", nm, (x, WALL_H / 2, (ew_z0 + ew_z1) / 2), (WALL_T, WALL_H, ew_z1 - ew_z0))
+    s_x0, s_x1 = GATE_HX - 0.1, 40 - TUR_HX + 0.1          # S runs: gate side to turret face
+    col("WallRuns", "SW", (-(s_x0 + s_x1) / 2, WALL_H / 2, 34), (s_x1 - s_x0, WALL_H, WALL_T))
+    col("WallRuns", "SE", ((s_x0 + s_x1) / 2, WALL_H / 2, 34), (s_x1 - s_x0, WALL_H, WALL_T))
     for nm, x, z in (("NW", -40, -46), ("NE", 40, -46), ("SW", -40, 34), ("SE", 40, 34)):
-        col("Turrets", nm, (x, 5, z), (8, 10, 8))
-    col("Gate", "Gate", (0, 5, 34), (16, 10, 8))
-    col("Buildings", "Hall", (0, 4.5, -39), (24, 9, 12))
+        col("Turrets", nm, (x, TUR_H / 2, z), (2 * TUR_HX, TUR_H, 2 * TUR_HZ))
+    # Gate at yaw 180: local +Z is world -Z, so the courtyard face is at z = 34 - 3.32 = 30.68.
+    col("Gate", "Gate", (0, GATE_H / 2, 34 - (GATE_Z0 + GATE_Z1) / 2), (2 * GATE_HX, GATE_H, GATE_Z1 - GATE_Z0))
+    # main_hall_goten at yaw 0: ground x +-11.20, z -5.78..6.00, height 9.42.
+    col("Buildings", "Hall", (0, 9.42 / 2, -39 + (-5.78 + 6.00) / 2), (22.4, 9.42, 11.78))
     col("Buildings", "Barracks", (-36, 3, 0), (6, 6, 24))
     col("Buildings", "Kura", (-31, 3.5, -36), (6, 7, 8))
     col("Pond", "FenceW", (24.35, 0.45, 0), (0.3, 0.9, 10.6))
@@ -561,8 +599,13 @@ def courtyard_arena(L):
                           ("G3", (30, -0.03, -25.5), (11, 0.06, 41)), ("G4", (30, -0.03, 19.5), (11, 0.06, 29))):
         s.node(nm, "MeshInstance3D", "Visual/Ground", [("transform", xform(pos)), ("mesh", s.sub("BoxMesh", [("size", vec(size))])),
                ("material_override", s.mat("grass")), ("cast_shadow", "0")])
-    s.node("OuterGrass", "MeshInstance3D", "Visual/Ground", [("transform", xform((0, -0.08, -6))),
-           ("mesh", s.sub("BoxMesh", [("size", "Vector3(200, 0.05, 200)")])), ("material_override", s.mat("grass")), ("cast_shadow", "0")])
+    # Grass outside the walls: a ring of four boxes around the courtyard ground (x -40..40,
+    # z -46..34). A single 200 x 200 plane here covered the pond water (y -0.3) - found in the
+    # windowed screenshots.
+    for nm, pos, size in (("OuterGrassN", (0, -0.08, -96.5), (200, 0.05, 101)), ("OuterGrassS", (0, -0.08, 69), (200, 0.05, 70)),
+                          ("OuterGrassW", (-70.25, -0.08, -6), (60.5, 0.05, 80)), ("OuterGrassE", (70.25, -0.08, -6), (60.5, 0.05, 80))):
+        s.node(nm, "MeshInstance3D", "Visual/Ground", [("transform", xform(pos)), ("mesh", s.sub("BoxMesh", [("size", vec(size))])),
+               ("material_override", s.mat("grass")), ("cast_shadow", "0")])
     s.node("Gravel", "MeshInstance3D", "Visual/Ground", [("transform", xform((0, 0.005, 0))),
            ("mesh", s.sub("BoxMesh", [("size", "Vector3(40, 0.01, 40)")])), ("material_override", s.mat("gravel")), ("cast_shadow", "0")])
     s.node("Paths", "Node3D", "Visual")
@@ -601,7 +644,9 @@ def courtyard_arena(L):
     s.node("Sun", "DirectionalLight3D", ".", [
         ("transform", sun_transform(SUN_ELEVATION_DEG, SUN_FROM_AZIMUTH_DEG, (0, 12, 0))),
         ("light_color", "Color(1, 0.86, 0.7, 1)"), ("light_energy", "1.05"), ("shadow_enabled", "true"),
-        ("shadow_opacity", "0.8"), ("shadow_blur", "1.5"), ("directional_shadow_max_distance", "90.0")])
+        ("shadow_opacity", "0.8"), ("shadow_blur", "1.5"), ("directional_shadow_max_distance", "80.0"),
+        # 2 PSSM splits instead of 4: the shadow passes were ~74% of the rendered primitives.
+        ("directional_shadow_mode", "1")])
     s.node("WorldEnvironment", "WorldEnvironment", ".", [("environment", env)])
     s.save("scenes/castle_courtyard.tscn")
 

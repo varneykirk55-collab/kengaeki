@@ -18,6 +18,7 @@ size = Vector3(4, 0.6, 2.1)
 script = ExtResource("1")
 model_path = "res://environment/courtyard/assets/Courtyard/wall_segment_4m/wall_segment_4m.glb"
 authored_size = Vector3(4, 5, 1.6)
+model_lod_bias = 0.3
 
 [node name="Graybox" type="Node3D" parent="."]
 

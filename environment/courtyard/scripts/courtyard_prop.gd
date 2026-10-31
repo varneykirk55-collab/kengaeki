@@ -39,6 +39,25 @@ extends Node3D
 			_refresh()
 ## Bill's authored size for this module (x, y, z before yaw), for the integration checks.
 @export var authored_size: Vector3 = Vector3.ZERO
+## Mesh LOD bias for the imported model (GeometryInstance3D.lod_bias). Below 1 switches to the
+## import-generated LOD meshes sooner; 1.0 is Godot's default.
+@export var model_lod_bias: float = 1.0:
+	set(v):
+		model_lod_bias = v
+		if is_node_ready():
+			_refresh()
+## Visibility range for the imported model (0 = always drawn). The margin adds hysteresis
+## so the model does not flicker at the boundary.
+@export var model_visibility_range_end: float = 0.0:
+	set(v):
+		model_visibility_range_end = v
+		if is_node_ready():
+			_refresh()
+@export var model_visibility_range_end_margin: float = 0.0:
+	set(v):
+		model_visibility_range_end_margin = v
+		if is_node_ready():
+			_refresh()
 ## Force the graybox even when a model is available (debugging / comparing scale).
 @export var force_graybox: bool = false:
 	set(v):
@@ -69,8 +88,19 @@ func _refresh() -> void:
 				holder.position = model_offset
 				holder.rotation_degrees.y = model_yaw_degrees
 				holder.add_child(inst)
+				_apply_render_settings(inst)
 				add_child(holder)  # not owned: never saved into the scene file
 				has_model = true
 	var gb := get_node_or_null(^"Graybox") as Node3D
 	if gb:
 		gb.visible = not has_model
+
+
+func _apply_render_settings(node: Node) -> void:
+	if node is GeometryInstance3D:
+		var g := node as GeometryInstance3D
+		g.lod_bias = model_lod_bias
+		g.visibility_range_end = model_visibility_range_end
+		g.visibility_range_end_margin = model_visibility_range_end_margin
+	for c in node.get_children():
+		_apply_render_settings(c)

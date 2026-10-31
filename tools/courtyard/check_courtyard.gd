@@ -166,7 +166,8 @@ func _blueprint_checks(arena: Node, map: RID, space: PhysicsDirectSpaceState3D, 
 			check(ok and dh > 0.85 and dh < 1.15, "arch rail x=%.2f z=%.1f top %.2f m above deck surface" % [x, z, dh])
 	# Gate closed (blocking); keep has no collision.
 	var gate := space.intersect_ray(PhysicsRayQueryParameters3D.create(Vector3(0, 1, 26), Vector3(0, 1, 42), 1))
-	check(not gate.is_empty() and absf(gate.position.z - 30.0) < 0.5, "main gate closed: blocking collider at z %s" % (gate.position.z if not gate.is_empty() else "none"))
+	# Collider fitted to BJORN's gate base (courtyard face at z = 34 - 3.32 = 30.68; DEVIATIONS #20).
+	check(not gate.is_empty() and absf(gate.position.z - 30.68) < 0.15, "main gate closed: blocking collider at z %s" % (gate.position.z if not gate.is_empty() else "none"))
 	var kq := PhysicsShapeQueryParameters3D.new()
 	var kb := BoxShape3D.new()
 	kb.size = Vector3(30, 28, 22)
@@ -197,6 +198,7 @@ func _blueprint_checks(arena: Node, map: RID, space: PhysicsDirectSpaceState3D, 
 					"%s: lantern model ~2 m, base at origin (aabb %s)" % [n.name, ab])
 	check(lanterns == 10 and with_model == lanterns, "all %d lanterns use the real GLB (%d with model)" % [lanterns, with_model])
 	_model_checks(arena)
+	_camera_clearance(arena, space, spawns)
 	# Routes that must exist.
 	for pair in [["pond north -> south", Vector3(31, 0, -9), Vector3(31, 0, 9)],
 			["gate forecourt -> hall forecourt", Vector3(0, 0, 25), Vector3(0, 0, -25)],
@@ -260,3 +262,44 @@ func _holder_aabb(prop: Node3D) -> AABB:
 			out = ab if first else out.merge(ab)
 			first = false
 	return out
+
+
+## Third-person camera clearance (scripts/camera/camera_controller.gd: SpringArm3D, sphere
+## probe radius 0.25, follow height 1.55 m, pitch -12 deg, distance 4.2, min 2.2, mask 1).
+## From each marker and a few tight spots, sweep the probe sphere backwards along the arm in 8
+## yaw directions and require at least the arm's minimum length (2.2 m) to be free.
+func _camera_clearance(arena: Node, space: PhysicsDirectSpaceState3D, spawns: Array) -> void:
+	const RADIUS := 0.25
+	const FOLLOW_H := 1.55
+	const PITCH := 12.0
+	const MIN_ARM := 2.2
+	const ARM := 4.2
+	var sphere := SphereShape3D.new()
+	sphere.radius = RADIUS
+	var pts := {}
+	pts["PlayerStart"] = (arena.get_node(^"PlayerStart") as Node3D).global_position
+	for p in spawns:
+		pts[p.name] = p.global_position
+	pts["centre"] = Vector3.ZERO
+	pts["gate interior"] = Vector3(0, 0, 27.5)
+	pts["hall forecourt"] = Vector3(0, 0, -30)
+	pts["arch bridge crown"] = Vector3(31, 0.704, 0)
+	pts["barracks lane"] = Vector3(-30, 0, 0)
+	for key in pts:
+		var origin: Vector3 = pts[key] + Vector3.UP * FOLLOW_H
+		var worst := INF
+		var full := 0
+		for i in 8:
+			var yaw := deg_to_rad(45.0 * i)
+			var dir := Vector3(sin(yaw) * cos(deg_to_rad(PITCH)), sin(deg_to_rad(PITCH)), cos(yaw) * cos(deg_to_rad(PITCH)))
+			var q := PhysicsShapeQueryParameters3D.new()
+			q.shape = sphere
+			q.transform = Transform3D(Basis(), origin)
+			q.motion = dir * ARM
+			q.collision_mask = 1
+			var frac := space.cast_motion(q)
+			var free := ARM * frac[0]
+			worst = minf(worst, free)
+			if frac[0] >= 1.0:
+				full += 1
+		check(worst >= MIN_ARM, "camera clearance at %s: arm free >= %.1f m in all 8 directions (worst %.2f m, full %.1f m in %d/8)" % [key, MIN_ARM, worst, ARM, full])

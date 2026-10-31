@@ -82,6 +82,7 @@ def main():
     apply = sys.argv[sys.argv.index("--apply") + 1] if "--apply" in sys.argv else None
     variant = sys.argv[sys.argv.index("--variant") + 1] if "--variant" in sys.argv else None
     sizes = {o[1]: o[6] for o in L.objs}
+    sizes.update(G.AUTHORED_SIZE)  # documented overrides (DEVIATIONS.md)
     for asset in bill_assets:
         hit = find(asset, man, variant if apply else None)
         if apply and apply not in (asset, G.CATEGORY.get(asset, ("", ""))[1]):
