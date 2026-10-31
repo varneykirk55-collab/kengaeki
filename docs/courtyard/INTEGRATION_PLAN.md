@@ -469,3 +469,85 @@ and `08_wall_lod_seam` (LOD0/LOD1 wall boundary). Seen in the screenshots: LOD b
 in the tinted views, no gap at the wall LOD boundary, slab less white, rocks seated on the ground
 (the grey spheres are graybox `rock_medium`). Crossfade quality and popping need a windowed,
 moving-camera look; a headless/llvmpipe still frame can't show them.
+
+## 14. BJORN batch 4 final and the LOD texture-sharing rework (Oct 30, 2026, ~11:00 PM EDT)
+Integrated from `/workspace/kengeki_assets/library/Courtyard/` (read only; HANDOFF batch 4 notes and the
+corrected LOD section). This completes Bill's 16-item inventory: every item is placed with a BJORN mesh, no
+graybox stand-ins remain (final table in `environment/courtyard/assets/ASSETS.md`).
+
+**Pond stones (DEVIATIONS #29).** `pond_edge_stones_2m` + `_b`, 7 stones, node scale main (1, 2.0, 1.4) /
+`_b` (1, 1.6, 1.4), sunk 0.32 m so each stone crosses the water and bank planes (no coplanar faces).
+PSTONE3–6 moved 0.1–0.4 m off the slab bridge (Bill's spots were 0.01–0.47 m inside it; `pond_fit.py`).
+One box collider each (`Collision/PondStones`); none over the bridge ends or the P5/P6 paths; the basin
+stays non-walkable.
+
+**Shrubs (#30).** `shrub_azalea` + `_b`, 12 shrubs, Y ×1.2, main sunk 0.08 m, no collision (Bill's
+spec), hidden beyond 45 m.
+
+**Gate (#31).** `main_gate_yaguramon_wide.glb` (15.34 m) replaces the 14.67 m gate (removed from the
+repo). Closed-door blocking box refitted (x ±7.08, z 30.16…37.82, h 10.43). It is still short of the wall
+ends at x ±8, so both gate fillers stay, shortened 2.2 → 2.0 m. Gap per side: ground 1.22 → 0.92 m,
+wall top 2.30 → 1.83 m.
+
+**rock_medium (#32).** BJORN's 1.5 × 1.0 × 1.2 m boulder at Bill's 8 positions, sunk 0.03 m, one box
+collider 1.44 × 0.98 × 1.10 m. `rock_medium_stool` not copied.
+
+**LOD rework (#33).** Wall lod1 (7,588), barracks lod1 (8,650), turret lod1 and the three tree lod3k use
+LOD0's texture files (no textures of their own); wall/barracks/kura lod2 have their own 256 px textures
+(JPEG albedo). Kura lod1 dropped: LOD0 → lod2 at 35 m. Old extracted lod1/lod2 textures removed. Tree
+LOD size check back to ±5%. Wall seams (`wall_lod_seams.py`): LOD0|LOD1 joint p90 0.954 → 0.932 m
+(LOD0|LOD0 baseline 0.949), LOD2 joints unchanged.
+
+**Checks (headless, not visual/gameplay verification).** `check_courtyard.gd` PASS, 318 checks, 0 FAIL
+(navmesh 442 polygons / 404 vertices, 0 above 2 m; spawns, routes, camera clearance, combat area,
+pond basin, bridge crossings, gate collider, the new pond stone / shrub / rock_medium / filler checks).
+`ref_check.gd` (new): 113 roots, 223 resources reached, 0 broken references, 0 unreferenced courtyard
+textures/GLBs (the unused 25k lantern is allowlisted, DEVIATIONS #14). Gameplay tests 109 passed /
+8 failed (the same 8 pre-existing character/animation/sheathe failures).
+
+**Budget** (`python3 tools/courtyard/asset_budget.py --files`):
+
+| | Before (`a3288d7`) | After batch 4 + LOD rework |
+|---|---|---|
+| Scene triangles at LOD0 (instanced) | 1,433,382 (170,120 unique) | 1,487,064 (180,066 unique) |
+| Triangles drawn from the combat centre (LOD selection, no frustum culling) | 443,062 | 586,307 |
+| Texture VRAM (BJORN assets, compressed) | 54.53 MB | 53.96 MB |
+| Git cost (referenced GLBs + extracted textures) | 100.57 MB | 91.23 MB |
+
+Git cost without the batch 4 additions (stones 2.69, shrubs 3.48, rock_medium 0.72, wide gate +0.77
+over the old gate) is 83.57 MB, in line with BJORN's ~83.9 MB estimate for the LOD rework alone. With
+batch 4 but the old LODs it was 108.24 MB. The drawn-from-centre count rises because the seam-preserving
+lod1s are heavier (wall 5,000 → 7,588 × 78 instances) and batch 4 adds ~30k triangles near the centre.
+Not counted: the unreferenced 25k lantern (18.80 MB in git).
+
+**Render cost** (windowed llvmpipe, primitives include shadow passes):
+
+| View | Draw calls before → after | Primitives before → after |
+|---|---|---|
+| 01 overview from gate | 86 → 88 | 360,332 → 413,568 (+15%) |
+| 02 combat centre, eye height | 56 → 54 | 284,929 → 309,504 (+9%) |
+| 03 pond + arch bridge | 76 → 78 | 464,567 → 610,355 (+31%) |
+| 04 wall / turret seam | 26 → 26 | 545,356 → 555,708 (+2%) |
+| 05 gate interior | 18 → 18 | 331,138 → 344,078 (+4%) |
+| 06 keep backdrop | 33 → 33 | 404,668 → 484,998 (+20%) |
+| 07 LOD overview | 118 → 114 | 566,876 → 654,064 (+15%) |
+| 08 wall LOD seam | 101 → 103 | 720,964 → 800,030 (+11%) |
+| 09 long-range | 83 → 78 | 234,573 → 241,133 (+3%) |
+| **Total 01–09** | **597 → 592** | **3,913,403 → 4,413,438 (+13%)** |
+| 10 pond stones close (21.5, 1.9, −7.5 → 28, 0, 0) | new | 79 / 642,573 |
+| 11 pond stones east (33, 1.6, 6.5 → 30, 0, −1) | new | 113 / 662,936 |
+| 12 gate exterior (10, 3, 48 → 0, 4, 34) | new | 81 / 600,452 |
+| 13 gate seam close (−11, 2, 27.5 → −7, 3, 32) | new | 39 / 452,874 |
+| 14 shrubs + rock close (19, 1.7, −8 → 24, 0.5, −12) | new | 84 / 916,523 |
+| 15 shrub + rock west (−22, 1.7, −14 → −27, 0.5, −19) | new | 45 / 587,338 |
+
+Split for 01–06 (batch 4 with the old LODs, then the LOD rework): batch 4 alone took the total from
+2,390,990 to 2,487,530 (+4%), the heavier lod1s to 2,718,211 (+9%).
+
+**Screenshots** replaced (`docs/courtyard/screenshots/`, `/workspace/kengeki_shots/`); the previous set is
+in `/workspace/kengeki_shots/before_batch4/`. Seen in the stills: stones line the pond with no visible
+z-fighting (they read pale, and one top has a dark patch); shrubs read well with a slightly dark base ring;
+rock_medium sits on the ground; the gate meets the walls with no gap from inside (05, 13) or outside (12);
+LOD bands in the tinted views as expected (kura shows lod2 in the lod1 colour, since it has only one
+lower level); no gap at the wall LOD boundary (08). Crossfades and popping need a windowed,
+moving-camera look.

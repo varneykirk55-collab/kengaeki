@@ -15,7 +15,7 @@ build box (not legal advice; some terms are still unverified there).
 | `Decorations/stone_lantern_toro` (`stone_lantern_toro_lod8k.glb`) | Tencent Hunyuan 3D (AI-generated) | BJORN pipeline: 50,012 → 8,000 tris, 1024² textures (JPEG albedo), scaled to 2.0 m |
 | `Courtyard/wall_segment_4m` | Tencent Hunyuan 3D (AI-generated) | BJORN pipeline: 13,134 tris, 3 × 1024² textures, 4.00 × 4.74 × 1.59 m, tiling ends checked |
 | `Courtyard/corner_turret` | Tencent Hunyuan 3D (AI-generated) | BJORN pipeline: 12,000 tris, 2048² albedo (JPEG) + 1024² data maps, 7.48 × 10.72 × 7.46 m |
-| `Courtyard/main_gate_yaguramon` | Tencent Hunyuan 3D (AI-generated) | BJORN pipeline: 20,000 tris, 2048² albedo (JPEG) + 1024² data maps, 14.67 × 10.91 × 8.00 m |
+| `Courtyard/main_gate_yaguramon` (`main_gate_yaguramon_wide.glb`) | Tencent Hunyuan 3D (AI-generated) | BJORN pipeline batch 4: 20,000 tris, JPEG albedo + data maps, 15.34 × 10.43 × 8.32 m, doors on +Z (replaces the 14.67 m gate, removed) |
 | `Courtyard/main_hall_goten` | Tencent Hunyuan 3D (AI-generated) | BJORN pipeline: 50,004 → 25,000 tris, 2048² albedo (JPEG) + 1024² data maps, 22.93 × 9.42 × 12.00 m |
 | `Courtyard/bridge_arched_taikobashi` | Tencent Hunyuan 3D (AI-generated) | BJORN pipeline: 8,000 tris, 1024² textures, non-uniform fit to 13 × 1.8 × 2.4 m (anisotropy 3.14). v2 (Oct 30, 8:06 PM EDT): symmetric, 8 piers extended down, origin at the pier bottoms, 13 × 2.05 × 2.4 m, 8,000 tris; v1 stays in git history and in BJORN's library as `_v1.glb` |
 | `Courtyard/barracks_nagaya` | Tencent Hunyuan 3D (AI-generated) | BJORN pipeline: 12,000 tris, 1024² textures (JPEG albedo), 24 × 6 × 6 m |
@@ -33,3 +33,7 @@ build box (not legal advice; some terms are still unverified there).
 | `Courtyard/bridge_stone_slab` (albedo v2) | Tencent Hunyuan 3D (AI-generated) | BJORN pipeline: albedo regraded darker (mean RGB 150/150/139 → 112/108/95), same mesh |
 | `Courtyard/rock_formation_large` (+ `_b`) | Tencent Hunyuan 3D (AI-generated) | BJORN pipeline batch 4: 4,000 tris each, 2.78 × 1.98 × 2.70 m / 3.40 × 2.15 × 2.21 m (`_b`, used at 0.9) |
 | `Courtyard/rock_small_cluster` (+ `_b`) | Tencent Hunyuan 3D (AI-generated) | BJORN pipeline batch 4: 1,000 tris each, used at 0.9 scale |
+| `Courtyard/pond_edge_stones_2m` (+ `_b`) | Tencent Hunyuan 3D (AI-generated) | BJORN pipeline batch 4: 2,000 / 1,998 tris, 2.00 × 0.226 × 0.443 m / 2.00 × 0.284 × 0.490 m, scaled up in the scene |
+| `Courtyard/shrub_azalea` (+ `_b`) | Tencent Hunyuan 3D (AI-generated) | BJORN pipeline batch 4: 1,970 / 1,978 tris, ~1.49 × 1.08 × 1.48 m (Y ×1.2 in the scene) |
+| `Courtyard/rock_medium` | Tencent Hunyuan 3D (AI-generated) | BJORN pipeline batch 4 (regenerated): 2,000 tris, 1.5 × 1.0 × 1.2 m low boulder |
+| LOD rework (wall / barracks lod1, all lod2, turret lod1, tree lod3k) | Tencent Hunyuan 3D (AI-generated) | BJORN pipeline: lod1 and lod3k reuse LOD0's textures; wall / barracks / kura lod2 own 256 px textures; kura lod1 not used |

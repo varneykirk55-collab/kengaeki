@@ -48,3 +48,35 @@
 | tree_sakura | `Courtyard/tree_sakura` | `environment/courtyard/assets/Courtyard/tree_sakura/tree_sakura_lod3k.glb` | 206684 | `4caa97f9dd5b4b6b4f0d2b94dede4c33ba953e96b612620c6936ca5eb99b7758` | 2026-10-30 22:31 EDT |
 | tree_maple_momiji | `Courtyard/tree_maple_momiji` | `environment/courtyard/assets/Courtyard/tree_maple_momiji/tree_maple_momiji_lod3k.glb` | 226488 | `cff5e1eb7e88bf06a6892534f36fdbc2849e1d368b651b5b9134e253c0e879ee` | 2026-10-30 22:32 EDT |
 | tree_pine_kuromatsu | `Courtyard/tree_pine_kuromatsu` | `environment/courtyard/assets/Courtyard/tree_pine_kuromatsu/tree_pine_kuromatsu_lod3k.glb` | 269080 | `250b334c10f6a910fc7e8ee132ea7c6ab5e658fce59611d2e22bb7ed39185836` | 2026-10-30 22:32 EDT |
+
+## Final inventory against Bill's 16 items (batch 4 complete, Oct 30, 2026 ~11:00 PM EDT)
+All 16 of Bill's inventory items, plus his two reuse items, are placed with BJORN's meshes; no graybox stand-ins
+remain. Triangles are per mesh (LOD0 / LODs). Git is the committed GLB plus its extracted textures, in MB
+(`python3 tools/courtyard/asset_budget.py --files`). Deviation numbers refer to `docs/courtyard/DEVIATIONS.md`.
+The copy ledger above is append-only: where a file appears twice the later row is current, and the rows for
+`main_gate_yaguramon.glb` and `storehouse_kura_lod1.glb` are history (both removed in `5af7d00`).
+
+| # | Bill's item | Placed | Instances (Bill) | File(s) in the repo | Tris LOD0 / LODs | Git (MB) | Deviations |
+|---|---|---|---|---|---|---|---|
+| 1 | wall_segment_4m | Yes | 78 (68 + 10 fillers) | `wall_segment_4m.glb`, `_lod1.glb` (shares LOD0 textures), `_lod2.glb` | 13,134 / 7,588 / 404 | 5.94 | #6, #13, #16, #20, #21, #27, #31, #33 |
+| 2 | main_gate_yaguramon | Yes | 1 (1) | `main_gate_yaguramon_wide.glb` | 20,000 | 5.89 | #13, #20, #31 |
+| 3 | corner_turret | Yes | 4 (4) | `corner_turret.glb`, `_lod1.glb` (shared), `_lod2.glb` | 12,000 / 5,400 / 1,997 | 7.04 | #13, #20, #27, #33 |
+| 4 | main_hall_goten | Yes | 1 (1) | `main_hall_goten.glb` | 25,000 | 6.23 | #15, #20 |
+| 5 | bridge_arched_taikobashi | Yes | 1 (1) | `bridge_arched_taikobashi.glb` | 8,000 | 4.59 | #8, #17 |
+| 6 | barracks_nagaya | Yes | 1 (1) | `barracks_nagaya.glb`, `_lod1.glb` (shared), `_lod2.glb` | 12,000 / 8,650 / 1,978 | 5.83 | #15, #18, #27, #33 |
+| 7 | storehouse_kura | Yes | 1 (1) | `storehouse_kura.glb`, `_lod2.glb` (lod1 skipped) | 6,000 / 1,000 | 5.25 | #15, #27, #33 |
+| 8 | castle_keep_tenshu | Yes | 1 (1) | `castle_keep_tenshu.glb` | 20,000 | 5.30 | #18 |
+| 9 | bridge_stone_slab | Yes | 1 (1) | `bridge_stone_slab_deck2m.glb` (albedo v2) | 2,000 | 5.50 | #24, #25 |
+| 10 | tree_pine_kuromatsu | Yes | 6 (6) | `tree_pine_kuromatsu.glb`, `_lod3k.glb` (shared) | 12,000 / 4,000 | 6.65 | #23, #26, #27, #33 |
+| 11 | tree_sakura | Yes | 5 (5) | `tree_sakura.glb`, `_lod3k.glb` (shared) | 11,986 / 3,491 | 5.97 | #23, #27, #33 |
+| 12 | tree_maple_momiji | Yes | 3 (3) | `tree_maple_momiji.glb`, `_lod3k.glb` (shared) | 10,000 / 3,986 | 5.21 | #23, #26, #27, #33 |
+| 13 | rock_formation_large | Yes | 4 (4) | `rock_formation_large.glb`, `_b.glb` | 4,000 / 4,000 | 8.61 | #28 |
+| 14 | rock_medium | Yes | 8 (8) | `rock_medium.glb` (`rock_medium_stool` not copied) | 2,000 | 0.72 | #32 |
+| 15 | pond_edge_stones_2m | Yes | 7 (7) | `pond_edge_stones_2m.glb`, `_b.glb` | 2,000 / 1,998 | 2.69 | #29 |
+| 16 | shrub_azalea | Yes | 12 (12) | `shrub_azalea.glb`, `_b.glb` | 1,970 / 1,978 | 3.48 | #30 |
+| – | stone_lantern_toro_2m (reuse) | Yes | 10 (10) | `stone_lantern_toro_lod8k.glb` | 8,000 | 3.54 | #11, #14 |
+| – | rock_small_cluster (reuse) | Yes | 10 (10) | `rock_small_cluster.glb`, `_b.glb` | 1,000 / 1,000 | 2.78 | #28 |
+| | **Total (referenced)** | **18 / 18** | | 32 GLBs | 180,066 unique LOD0 | **91.23** | |
+
+Not in the table: the first 25k lantern (`stone_lantern_toro.glb` + 3 extracted textures, 18.80 MB in git: 9.8 MB GLB + 9.0 MB PNG) is still committed but not
+referenced by any scene (DEVIATIONS #14); `tools/courtyard/ref_check.gd` allowlists it. Removing it is Kirk's call.
