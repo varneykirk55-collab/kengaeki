@@ -34,6 +34,13 @@ The original pipeline GLB is never modified; the project uses its own copy.
 
 ## Animations → gameplay
 
+> **Update: KinemIQ combat clips.** Attacks, the guard and the drawn ready stance now use the
+> KinemIQ clips (`Light_Slash_A`, `Light_Combo`, `Heavy_Slash_B`, `Heavy_Slash_C`, `Block`) in
+> `assets/animations/kinemiq/kinemiq_combat.res`. The mapping, contact segments, blade
+> clearance and tests are in [COMBAT_ANIMATIONS.md](COMBAT_ANIMATIONS.md).
+> `Sword_Combo_OneHand` and the attack-timing table below are the fallback when that library is
+> missing. Locomotion, jump, draw and sheathe are unchanged.
+
 | Clip | Length | Gameplay | Layer and playback |
 |---|---|---|---|
 | `Idle_Unarmed` | 5.10 s | Standing (speed < 0.3 m/s) | Locomotion; loops |
@@ -111,7 +118,7 @@ These states have no clip among the seven, so they use simple stand-ins:
 
 | State | Stand-in |
 |---|---|
-| Block | Guard stance (first frame of the combo clip) |
+| Block | KinemIQ `Block` clip (see COMBAT_ANIMATIONS.md); previously the combo clip's first frame |
 | Dodge | Run clip at speed |
 | Hit, parried, block impact | Procedural backward flinch of the whole body |
 | Knockdown | Procedural fall back and get up (1.0 s) |
@@ -156,15 +163,15 @@ Not verified: a human actually playing with keyboard, mouse or gamepad. All inpu
 3. **Walk foot slide:** Walk is a slow catwalk (1.8 m/s at this scale), but gameplay walks at
    4.6 m/s. Cadence is capped at 2.2×, so some foot slide remains. Tune with
    `max_walk_time_scale` on the visual, or lower `walk_speed`.
-4. **No dedicated clips** for strafe, back-step, block, dodge, hit, knockdown or death. The stand-ins
+4. **No dedicated clips** for strafe, back-step, dodge, hit, knockdown or death (block now has one). The stand-ins
    above are readable but basic. Lock-on strafing plays the forward walk.
 5. **Cosmetic, from the asset (not changed):**
    * Knuckle edges stretch during the fist grip. No visible collapse at gameplay distance.
    * The thigh armour plates flare outward while running (skin weights).
-   * The Run, Jump and Dodge poses hold the hand behind the hip, so the first ~10 cm of the
-     blade passes through the back of the right thigh armour. The placeholder did the same.
-   * While `Sword_Draw` and `Sword_Sheathe` play, the blade passes through the torso before the swap
-     frame (the clips have no prop).
+   * The Run, Jump and Dodge poses hold the hand behind the hip, and `Sword_Draw` / `Sword_Sheathe`
+     have no prop, so the blade used to cut through the right thigh and torso. The grip-side blade
+     clearance now turns the blade out of the body and eases it along the saya at the hand-over.
+     A few centimetres of overlap remain on some frames (measured in COMBAT_ANIMATIONS.md).
 6. The Jump has no anticipation crouch, so it is responsive: take-off is immediate and the
    clip starts at its take-off frame.
 

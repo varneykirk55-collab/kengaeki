@@ -52,6 +52,8 @@ func run_all() -> void:
 		test_character_asset, test_character_root_motion_in_place, test_character_locomotion_states,
 		test_character_attack_sync, test_character_attack_sync_segments, test_jump, test_sword_draw_and_sheathe, test_sheathed_attack_draws,
 		test_character_reset_after_death,
+		test_combat_clip_library, test_combat_clip_selection, test_combat_hit_windows,
+		test_katana_body_clearance,
 	]
 	var only := OS.get_environment("KENGEKI_TEST")
 	for t in tests:
@@ -983,3 +985,153 @@ func test_character_attack_sync_segments() -> void:
 	for id in [&"light_1", &"light_2", &"heavy_1"]:
 		var b: Array = best.get(id, [0.0, -1])
 		check(b[1] == AttackRunner.Phase.ACTIVE, "attack sync %s: fastest hand motion in the hit window (phase %d, %.1f m/s)" % [id, b[1], b[0]])
+
+
+# --- KinemIQ combat clips ----------------------------------------------------------
+
+func test_combat_clip_library() -> void:
+	var v := _kvis()
+	var names := [&"Light_Slash_A", &"Light_Combo", &"Heavy_Slash_B", &"Heavy_Slash_C", &"Block"]
+	var lib := v.anim_player.get_animation_library(&"kinemiq") if v.anim_player.has_animation_library(&"kinemiq") else null
+	check(lib != null and lib.get_animation_list().size() == 5, "combat clips: kinemiq library holds the five KinemIQ clips")
+	if lib == null:
+		return
+	for n in names:
+		var a := lib.get_animation(n)
+		check(a != null and a.track_get_path(0).get_concatenated_names() == "Kengeki_Rig/Skeleton3D" and a.find_track(NodePath("Kengeki_Rig/Skeleton3D:CC_Base_R_Hand"), Animation.TYPE_ROTATION_3D) >= 0,
+			"combat clips: %s drives the CC_Base skeleton" % n)
+		check(a == null or a.find_track(NodePath("Kengeki_Rig/Skeleton3D:RL_BoneRoot"), Animation.TYPE_ROTATION_3D) < 0, "combat clips: %s leaves the root motion bone alone" % n)
+	# Every player attack resolves to a KinemIQ clip whose segment fits inside it.
+	for key in [&"slash_rl", &"slash_lr", &"spin", &"thrust", &"rising", &"overhead", &"kesa"]:
+		var m: Array = v.attack_clip(key)
+		var a := v.anim_player.get_animation(m[0])
+		var seg: Array = m[1]
+		check(String(m[0]).begins_with("kinemiq/") and a != null and seg[0] <= seg[1] and seg[1] < seg[2] and seg[2] <= seg[3] and seg[3] <= a.length + 0.001,
+			"combat clips: %s -> %s %s" % [key, m[0], seg])
+
+
+func _clip_during(attack: StringName, max_frames: int) -> StringName:
+	for i in max_frames:
+		await frames(1)
+		if player.attack_runner.is_running() and player.attack_runner.attack.id == attack and player.attack_runner.phase == AttackRunner.Phase.ACTIVE:
+			return _kvis().current_action_clip()
+	return &""
+
+
+func test_combat_clip_selection() -> void:
+	make_enemy(Vector3(0, 0, -1.8), false, 5000.0)
+	await frames(5)
+	await seconds(0.4)
+	check(_kvis()._ready_weight > 0.95, "combat clips: ready stance shown while standing with the katana drawn")
+	await tap(&"light_attack")
+	check(await _clip_during(&"light_1", 30) == &"kinemiq/Light_Slash_A", "combat clips: light attack plays Light_Slash_A")
+	await tap(&"light_attack")
+	check(await _clip_during(&"light_2", 40) == &"kinemiq/Light_Combo", "combat clips: combo hit II plays Light_Combo")
+	await tap(&"light_attack")
+	check(await _clip_during(&"light_3", 60) == &"kinemiq/Light_Combo", "combat clips: combo hit III plays Light_Combo")
+	await seconds(1.2)
+	await tap(&"heavy_attack")
+	check(await _clip_during(&"heavy_1", 40) == &"kinemiq/Heavy_Slash_C", "combat clips: heavy attack plays Heavy_Slash_C")
+	await seconds(1.2)
+	await tap(&"light_attack")
+	await seconds(0.2)
+	await tap(&"heavy_attack")
+	check(await _clip_during(&"light_heavy", 60) == &"kinemiq/Heavy_Slash_B", "combat clips: light > heavy plays Heavy_Slash_B")
+	await seconds(1.2)
+	press(&"block")
+	await seconds(0.4)
+	check(_kvis().current_action_clip() == &"kinemiq/Block", "combat clips: guard plays the Block clip")
+	release(&"block")
+	await seconds(0.6)
+	check(_kvis().current_action_clip() == &"", "combat clips: guard released back to the stance")
+
+
+# Fastest right-hand motion of each attack (player-local, m/s) and the runner phase it fell in.
+func _hand_peaks(taps: Array, total_frames: int) -> Dictionary:
+	var best := {}
+	var prev := Vector3.INF
+	for i in total_frames:
+		for t in taps:
+			if t[0] == i:
+				await tap(t[1])
+		await frames(1)
+		var cur := player.global_transform.basis.inverse() * (_bone_world("CC_Base_R_Hand") - player.global_position)
+		if prev != Vector3.INF and player.attack_runner.is_running():
+			var id: StringName = player.attack_runner.attack.id
+			var spd := cur.distance_to(prev) * 60.0
+			if spd > best.get(id, [0.0, -1])[0]:
+				best[id] = [spd, player.attack_runner.phase]
+		prev = cur
+	return best
+
+
+func test_combat_hit_windows() -> void:
+	# The hit windows (unchanged attack data) must cover each clip's contact: the fastest
+	# hand motion of every swing lands in ACTIVE.
+	make_enemy(Vector3(0, 0, -1.8), false, 5000.0)
+	await frames(5)
+	var best := await _hand_peaks([[0, &"light_attack"], [13, &"light_attack"], [26, &"light_attack"]], 100)
+	await seconds(1.0)
+	best.merge(await _hand_peaks([[0, &"light_attack"], [12, &"heavy_attack"]], 90))
+	await seconds(1.0)
+	best.merge(await _hand_peaks([[0, &"heavy_attack"], [24, &"light_attack"]], 90))
+	for id in [&"light_1", &"light_2", &"light_3", &"light_heavy", &"heavy_1", &"heavy_light"]:
+		var b: Array = best.get(id, [0.0, -1])
+		check(b[1] == AttackRunner.Phase.ACTIVE, "hit window %s: clip contact (fastest hand) inside ACTIVE (phase %d, %.1f m/s)" % [id, b[1], b[0]])
+
+
+func _seg_dist(p: Vector3, a: Vector3, b: Vector3) -> float:
+	var ab := b - a
+	var t := clampf((p - a).dot(ab) / ab.length_squared(), 0.0, 1.0)
+	return p.distance_to(a + ab * t)
+
+
+## Smallest clearance (m, negative = inside) between the blade and a bone capsule.
+func _blade_clear(a: String, b: String, r: float) -> float:
+	var k := player.weapon.katana
+	var pa := _bone_world(a)
+	var pb := _bone_world(b)
+	var worst := 99.0
+	for i in 11:
+		var p := k.blade_base.global_position.lerp(k.blade_tip.global_position, i / 10.0)
+		worst = minf(worst, _seg_dist(p, pa, pb) - r)
+	return worst
+
+
+## [torso min, torso frames inside, thigh min, thigh frames inside] over n frames.
+func _clearance_over(n: int) -> Array:
+	var out := [99.0, 0, 99.0, 0]
+	for i in n:
+		await frames(1)
+		var t := _blade_clear("CC_Base_Waist", "CC_Base_NeckTwist01", 0.13)
+		var h := _blade_clear("CC_Base_R_Thigh", "CC_Base_R_Calf", 0.08)
+		out[0] = minf(out[0], t)
+		out[2] = minf(out[2], h)
+		if t < 0.0: out[1] += 1
+		if h < 0.0: out[3] += 1
+	return out
+
+
+func test_katana_body_clearance() -> void:
+	# Without the grip-side clearance the drawn blade sat 7.5 cm inside the right thigh
+	# for 50 of 90 run frames and 12 cm inside the torso through sheathe / draw.
+	await frames(5)
+	var c: Array = await _clearance_over(30)
+	check(c[0] > -0.005 and c[2] > -0.005, "katana clearance idle: blade outside torso/thigh (%.3f, %.3f)" % [c[0], c[2]])
+	press(&"move_forward")
+	c = await _clearance_over(90)
+	check(c[0] > -0.005 and c[2] > -0.005, "katana clearance walk: blade outside torso/thigh (%.3f, %.3f)" % [c[0], c[2]])
+	press(&"sprint")
+	c = await _clearance_over(90)
+	check(c[0] > -0.05 and c[2] > -0.05 and c[1] + c[3] <= 20, "katana clearance run: <5 cm, few frames (torso %.3f x%d, thigh %.3f x%d)" % c)
+	check(_katana_bone() == "CC_Base_R_Hand", "katana clearance run: katana still in the right hand (%s)" % _katana_bone())
+	release(&"sprint")
+	release(&"move_forward")
+	await seconds(0.5)
+	await tap(&"toggle_sword")
+	c = await _clearance_over(70)
+	check(c[0] > -0.09 and c[1] <= 10, "katana clearance sheathe: torso overlap reduced (%.3f x%d)" % [c[0], c[1]])
+	await seconds(0.5)
+	await tap(&"toggle_sword")
+	c = await _clearance_over(70)
+	check(c[0] > -0.03 and c[1] <= 4, "katana clearance draw: torso overlap reduced (%.3f x%d)" % [c[0], c[1]])
