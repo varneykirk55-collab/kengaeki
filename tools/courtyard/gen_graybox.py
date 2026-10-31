@@ -197,7 +197,11 @@ def asset_candidates(asset):
 
 # Preferred variant file per blueprint asset (BJORN's LOD variants sit next to the main GLB).
 # Bill's inventory asks for the lantern decimated to ~8k tris; BJORN delivered that as lod8k.
-MODEL_VARIANT = {"stone_lantern_toro_2m": "stone_lantern_toro_lod8k"}
+MODEL_VARIANT = {"stone_lantern_toro_2m": "stone_lantern_toro_lod8k",
+                 # Batch 3: the deck2m variant's deck top is 2.0 m wide, matching Bill's deck collider
+                 # and the rails at x +-1.075. Only the variant is copied (sync_assets.py --variant
+                 # deck2m); the main bridge_stone_slab.glb (2.33 m deck) is not in the repo.
+                 "bridge_stone_slab": "bridge_stone_slab_deck2m"}
 
 # Integration fit applied to the imported model only (graybox and collision unaffected unless noted).
 # Every entry is a documented deviation (docs/courtyard/DEVIATIONS.md).
@@ -206,6 +210,10 @@ MODEL_FIT = {
     # sit flush on the banks (deck-end top 0.393-0.407 in model space) and the piers end 0.10 m
     # under the water surface (-0.30). The arena colliders follow the sunk deck (ARCH_PROFILE).
     "bridge_arched_taikobashi": dict(offset=(0, -0.40, 0)),
+    # Slab deck2m (batch 3): y=0 is the support bottoms, deck top 0.391-0.395. Sink 0.394 m so the
+    # deck is flush with the banks (+-3 mm over its walkable length) and the supports end 0.094 m
+    # under the water surface (-0.30).
+    "bridge_stone_slab": dict(offset=(0, -0.394, 0)),
 }
 
 # Render cost settings for the imported models (CourtyardProp exports). Every BJORN GLB is
@@ -217,6 +225,12 @@ MODEL_FIT = {
 MODEL_RENDER = {
     "wall_segment_4m": dict(lod_bias=0.3),
     "stone_lantern_toro_2m": dict(vis_end=55.0, vis_margin=5.0),
+    # Trees (batch 3): Godot's generated LOD saves only ~3% on BJORN's trees even at lod_bias 0.05
+    # (detached foliage cards), so no bias; cull beyond 100 m (+10 m hysteresis). Inside the walls
+    # that only hits tree pairs at opposite corners (fog ~33% there); none of the six views.
+    "tree_pine_kuromatsu": dict(vis_end=100.0, vis_margin=10.0),
+    "tree_sakura": dict(vis_end=100.0, vis_margin=10.0),
+    "tree_maple_momiji": dict(vis_end=100.0, vis_margin=10.0),
 }
 
 # Authored-size overrides used by the 10% checks (sync_assets.py, check_courtyard.gd) where the
@@ -225,7 +239,25 @@ AUTHORED_SIZE = {
     # Bill: 13 x 1.8 x 2.4. v2 adds 0.25 m of pier below the old base (hidden under the water),
     # so the model is 2.05 m tall; above the bank it is 1.65 m.
     "bridge_arched_taikobashi": (13, 2.05, 2.4),
+    # Bill: 11 x 0.4 x 2.0 (the deck). deck2m: the deck top is 2.0 m wide; the supports below it
+    # reach z +-1.333 (in the water, clear of the pond fence at x 24.2..24.5).
+    "bridge_stone_slab": (11, 0.4, 2.667),
 }
+
+# Trees (batch 3) are scaled uniformly to Bill's height with the origin at the trunk base, so the
+# size checks compare the height (within 10%) and only require the canopy footprint to be no
+# larger than Bill's (+10%); the footprint is not centred on the origin. DEVIATIONS.md #23.
+HEIGHT_FIT = {"tree_pine_kuromatsu", "tree_sakura", "tree_maple_momiji"}
+# Trunk-only collider per species (model space: x, z of the cylinder axis, radius, height), from
+# BJORN's batch 3 notes. Bill: pine r0.35 h3, maple/sakura r0.3 h2.5. Canopies do not collide.
+TREE_TRUNK = {"tree_pine_kuromatsu": (-0.3, 0.15, 0.45, 2.5),
+              "tree_sakura": (0.0, 0.0, 0.4, 2.3),
+              "tree_maple_momiji": (0.0, 0.0, 0.2, 2.0)}
+# Yaw overrides (degrees) where Bill's yaw makes a canopy clip a wall or turret; the trunk stays on
+# Bill's position. Found with tools/courtyard/tree_fit.py (>= 0.25 m clearance). DEVIATIONS.md #23.
+YAW_OVERRIDE = {"PINE3": 88,    # Bill 134: canopy 0.54 m into the east wall (WE11)
+                "PINE6": 312}   # Bill 335: canopy 0.29 m into the NE turret (TNE)
+POND_X, POND_HZ = (24.5, 35.5), 5.0   # pond water x range and half depth in z (water box (30,-0.3,0), 11 x 10)
 
 
 def resolve_model_path(asset):
@@ -479,11 +511,11 @@ def build_prefab(asset, size):
         s.col_cyl("Shape", (0, 1.0, 0), 0.45, 2.0)
     elif asset.startswith("tree_"):
         pine = asset == "tree_pine_kuromatsu"
-        r, h = (0.35, 3.0) if pine else (0.3, 2.5)
+        tx, tz, r, h = TREE_TRUNK[asset]
         leaf = "foliage" if pine else "lacquer" if "maple" in asset else "plaster"
-        s.cyl("Trunk", (0, sy * 0.3, 0), r * 0.7, r, sy * 0.6, "bark", 8)
+        s.cyl("Trunk", (tx, sy * 0.3, tz), r * 0.7, r, sy * 0.6, "bark", 8)
         s.sphere("Canopy", (0, sy * 0.7, 0), sx / 2, sy * 0.55, leaf)
-        s.col_cyl("Trunk", (0, h / 2, 0), r, h)
+        s.col_cyl("Trunk", (tx, h / 2, tz), r, h)
     elif asset == "shrub_azalea":
         s.sphere("Body", (0, sy / 2, 0), sx / 2, sy, "foliage")
     elif asset.startswith("rock_"):
@@ -590,6 +622,7 @@ def courtyard_arena(L):
         grp = {"stone": "Lanterns"}.get(asset.split("_")[0], asset.split("_")[0].capitalize() + "s")
         if grp not in groups_made:
             s.node(grp, "Node3D", "Collision/Props"); groups_made.add(grp)
+        yaw = YAW_OVERRIDE.get(oid, yaw)
         s.node(oid, None, "Collision/Props/" + grp, [("transform", xform((x, y, z), ("y", yaw)))], instance=prefab_path(asset))
 
     # ---- Visual: no colliders ----
@@ -610,9 +643,17 @@ def courtyard_arena(L):
            ("mesh", s.sub("BoxMesh", [("size", "Vector3(40, 0.01, 40)")])), ("material_override", s.mat("gravel")), ("cast_shadow", "0")])
     s.node("Paths", "Node3D", "Visual")
     for (nm, x0, z0, x1, z1, w) in L.PATHS:
-        size = (abs(x1 - x0), 0.02, w) if z0 == z1 else (w, 0.02, abs(z1 - z0))
-        s.node(nm.split(" ")[0], "MeshInstance3D", "Visual/Paths", [("transform", xform(((x0 + x1) / 2, 0.01, (z0 + z1) / 2))),
-               ("mesh", s.sub("BoxMesh", [("size", vec(size))])), ("material_override", s.mat("path")), ("cast_shadow", "0")])
+        # The bridge spur paths (P5, P6) run straight across the pond; the strip over the water is
+        # skipped (it covered the slab deck 2 cm above it and floated over the water under the
+        # arch). Split at the pond edges z = +-5 (DEVIATIONS.md #24). Visual only.
+        segs = [(nm.split(" ")[0], x0, z0, x1, z1)]
+        if x0 == x1 and POND_X[0] < x0 < POND_X[1] and min(z0, z1) < -POND_HZ and max(z0, z1) > POND_HZ:
+            lo, hi = min(z0, z1), max(z0, z1)
+            segs = [(segs[0][0] + "N", x0, lo, x0, -POND_HZ), (segs[0][0] + "S", x0, POND_HZ, x0, hi)]
+        for (pn, a0, b0, a1, b1) in segs:
+            size = (abs(a1 - a0), 0.02, w) if b0 == b1 else (w, 0.02, abs(b1 - b0))
+            s.node(pn, "MeshInstance3D", "Visual/Paths", [("transform", xform(((a0 + a1) / 2, 0.01, (b0 + b1) / 2))),
+                   ("mesh", s.sub("BoxMesh", [("size", vec(size))])), ("material_override", s.mat("path")), ("cast_shadow", "0")])
     s.node("Pond", "Node3D", "Visual")
     s.node("Water", "MeshInstance3D", "Visual/Pond", [("transform", xform((30, -0.3, 0))),
            ("mesh", s.sub("BoxMesh", [("size", "Vector3(11, 0.02, 10)")])), ("material_override", s.mat("water")), ("cast_shadow", "0")])

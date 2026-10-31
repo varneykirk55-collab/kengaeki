@@ -5,8 +5,8 @@
 [ext_resource type="Material" path="res://environment/courtyard/materials/gb_plaster.tres" id="3"]
 
 [sub_resource type="CylinderMesh" id="CylinderMesh_1"]
-top_radius = 0.21
-bottom_radius = 0.3
+top_radius = 0.28
+bottom_radius = 0.4
 height = 3.6
 radial_segments = 8
 rings = 1
@@ -18,13 +18,15 @@ radial_segments = 12
 rings = 6
 
 [sub_resource type="CylinderShape3D" id="CylinderShape3D_3"]
-radius = 0.3
-height = 2.5
+radius = 0.4
+height = 2.3
 
 [node name="tree_sakura" type="Node3D"]
 script = ExtResource("1")
-model_path = "res://environment/courtyard/assets/Vegetation/tree_sakura/tree_sakura.glb"
+model_path = "res://environment/courtyard/assets/Courtyard/tree_sakura/tree_sakura.glb"
 authored_size = Vector3(6, 6, 6)
+model_visibility_range_end = 100
+model_visibility_range_end_margin = 10
 
 [node name="Graybox" type="Node3D" parent="."]
 
@@ -43,5 +45,5 @@ mesh = SubResource("SphereMesh_2")
 material_override = ExtResource("3")
 
 [node name="Trunk" type="CollisionShape3D" parent="Collision"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.25, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.15, 0)
 shape = SubResource("CylinderShape3D_3")

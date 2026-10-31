@@ -164,6 +164,47 @@ func _blueprint_checks(arena: Node, map: RID, space: PhysicsDirectSpaceState3D, 
 			var ok := not rail.is_empty() and not deck.is_empty()
 			var dh: float = (rail.position.y - deck.position.y) if ok else -1.0
 			check(ok and dh > 0.85 and dh < 1.15, "arch rail x=%.2f z=%.1f top %.2f m above deck surface" % [x, z, dh])
+	# Slab bridge (batch 3, BJORN's deck2m, deck top at y ~0): the route between its two ends goes
+	# over the deck, and the rails stand ~0.9 m above it (Bill: 2 rail colliders, 0.9 m).
+	var sn := NavigationServer3D.map_get_closest_point(map, Vector3(26, 0, -8))
+	var ss := NavigationServer3D.map_get_closest_point(map, Vector3(26, 0, 8))
+	var slab := NavigationServer3D.map_get_path(map, sn, ss, true)
+	var slow := INF
+	var slen := 0.0
+	var smaxdx := 0.0
+	for i in slab.size():
+		slow = minf(slow, slab[i].y)
+		if absf(slab[i].z) < 5.0:
+			smaxdx = maxf(smaxdx, absf(slab[i].x - 26.0))
+		if i > 0:
+			slen += slab[i].distance_to(slab[i - 1])
+	check(slab.size() > 0 and slow > -0.1 and slen < 18.0 and smaxdx < 1.0, "slab bridge crossable end to end over the deck (path low y %.2f, length %.1f m, max |x-26| over the pond %.2f m)" % [slow, slen, smaxdx])
+	for z in [0.0, -3.0, 3.0, -4.8, 4.8]:
+		for x in [24.925, 27.075]:
+			var rail := space.intersect_ray(PhysicsRayQueryParameters3D.create(Vector3(x, 4, z), Vector3(x, -1, z), 1))
+			var deck := space.intersect_ray(PhysicsRayQueryParameters3D.create(Vector3(26, 4, z), Vector3(26, -1, z), 1))
+			var ok := not rail.is_empty() and not deck.is_empty()
+			var dh: float = (rail.position.y - deck.position.y) if ok else -1.0
+			check(ok and absf(deck.position.y) < 0.02 and dh > 0.8 and dh < 1.0, "slab rail x=%.3f z=%.1f top %.2f m above deck surface (deck y %.3f)" % [x, z, dh, deck.position.y if ok else -9.0])
+	# Trees (batch 3): one trunk-only cylinder collider each, none inside the 40 x 40 m combat
+	# square or within 2.5 m of a spawn / the player start.
+	var trees := 0
+	for n in _all(arena):
+		if n is CourtyardProp and String(n.scene_file_path).get_file().begins_with("tree_"):
+			trees += 1
+			var cyl := 0
+			for c in _all(n):
+				if c is CollisionShape3D and (c as CollisionShape3D).shape is CylinderShape3D:
+					cyl += 1
+			var tp: Vector3 = n.global_position
+			var near := INF
+			for p in spawns:
+				near = minf(near, Vector2(p.global_position.x - tp.x, p.global_position.z - tp.z).length())
+			var ps := (arena.get_node(^"PlayerStart") as Node3D).global_position
+			near = minf(near, Vector2(ps.x - tp.x, ps.z - tp.z).length())
+			check(cyl == 1 and not (absf(tp.x) < 20.0 and absf(tp.z) < 20.0) and near > 2.5,
+				"%s: 1 trunk collider (%d), outside the combat square, nearest spawn %.1f m" % [n.name, cyl, near])
+	check(trees == 14, "14 trees placed (%d)" % trees)
 	# Gate closed (blocking); keep has no collision.
 	var gate := space.intersect_ray(PhysicsRayQueryParameters3D.create(Vector3(0, 1, 26), Vector3(0, 1, 42), 1))
 	# Collider fitted to BJORN's gate base (courtyard face at z = 34 - 3.32 = 30.68; DEVIATIONS #20).
@@ -202,7 +243,12 @@ func _blueprint_checks(arena: Node, map: RID, space: PhysicsDirectSpaceState3D, 
 	# Routes that must exist.
 	for pair in [["pond north -> south", Vector3(31, 0, -9), Vector3(31, 0, 9)],
 			["gate forecourt -> hall forecourt", Vector3(0, 0, 25), Vector3(0, 0, -25)],
-			["barracks lane -> kura yard", Vector3(-26, 0, 0), Vector3(-26, 0, -40)]]:
+			["barracks lane -> kura yard", Vector3(-26, 0, 0), Vector3(-26, 0, -40)],
+			["east-north path (sakura / pines)", Vector3(20, 0, -10), Vector3(34, 0, -10)],
+			["east-south path (maples)", Vector3(20, 0, 10), Vector3(34, 0, 10)],
+			["west path (pine 4 / maple 3)", Vector3(-20, 0, 2), Vector3(-30, 0, 2)],
+			["gate forecourt -> sakura lawn west", Vector3(0, 0, 25), Vector3(-20, 0, 25)],
+			["gate forecourt -> sakura lawn east", Vector3(0, 0, 25), Vector3(20, 0, 25)]]:
 		var a := NavigationServer3D.map_get_closest_point(map, pair[1])
 		var c := NavigationServer3D.map_get_closest_point(map, pair[2])
 		var route := NavigationServer3D.map_get_path(map, a, c, true)
@@ -236,6 +282,20 @@ func _model_checks(arena: Node) -> void:
 		var ab := _holder_aabb(first)
 		var want: Vector3 = first.authored_size
 		var dev := (ab.size - want) / want * 100.0
+		if key.begins_with("tree_"):
+			# Trees (DEVIATIONS.md #23): uniform scale to Bill's height, origin at the trunk base,
+			# canopy footprint off-centre and no larger than Bill's (+10%).
+			check(absf(dev.y) <= 10.0 and dev.x <= 10.0 and dev.z <= 10.0,
+				"%s: model %.2f x %.2f x %.2f m vs Bill %.2f x %.2f x %.2f m (height %+.1f%%, footprint %+.1f%% %+.1f%%)" % [key, ab.size.x, ab.size.y, ab.size.z, want.x, want.y, want.z, dev.y, dev.x, dev.z])
+			check(absf(ab.position.y - first.model_offset.y) < 0.05 and ab.position.x < 0.0 and ab.end.x > 0.0 and ab.position.z < 0.0 and ab.end.z > 0.0,
+				"%s: model base at y %.2f, trunk origin inside the canopy footprint x %.2f..%.2f z %.2f..%.2f" % [key, ab.position.y, ab.position.x, ab.end.x, ab.position.z, ab.end.z])
+			var meshes := {}
+			for n in nodes:
+				for c in _all(n.get_node(^"Model")):
+					if c is MeshInstance3D:
+						meshes[(c as MeshInstance3D).mesh.get_instance_id()] = true
+			check(meshes.size() == 1, "%s: %d instances share %d imported mesh resource(s)" % [key, nodes.size(), meshes.size()])
+			continue
 		check(absf(dev.x) <= 10.0 and absf(dev.y) <= 10.0 and absf(dev.z) <= 10.0,
 			"%s: model %.2f x %.2f x %.2f m vs Bill %.2f x %.2f x %.2f m (%+.1f%% %+.1f%% %+.1f%%)" % [key, ab.size.x, ab.size.y, ab.size.z, want.x, want.y, want.z, dev.x, dev.y, dev.z])
 		check(absf(ab.position.y - first.model_offset.y) < 0.05 and absf(ab.get_center().x) < 0.5 and absf(ab.get_center().z) < 0.5,
@@ -284,6 +344,7 @@ func _camera_clearance(arena: Node, space: PhysicsDirectSpaceState3D, spawns: Ar
 	pts["gate interior"] = Vector3(0, 0, 27.5)
 	pts["hall forecourt"] = Vector3(0, 0, -30)
 	pts["arch bridge crown"] = Vector3(31, 0.704, 0)
+	pts["slab bridge deck"] = Vector3(26, 0.0, 0)
 	pts["barracks lane"] = Vector3(-30, 0, 0)
 	for key in pts:
 		var origin: Vector3 = pts[key] + Vector3.UP * FOLLOW_H

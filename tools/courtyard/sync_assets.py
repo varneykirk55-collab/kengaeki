@@ -14,7 +14,8 @@ layout, batch 1+), else <name>/optimised/<name>.glb (first lantern delivery).
 in place, so a mismatch means a delivery is in flight); the git cost (GLB + Godot-extracted textures,
 stats.json git_cost) is <= 10 MB (repo policy, no LFS); the asset has a REPORT.md and a MANIFEST.json
 entry whose validation starts with PASS; and the GLB's own bounding box (measured here with glb_probe.py)
-is within 10% of Bill's authored size on every axis. Read REPORT.md and HANDOFF.md yourself before
+is within 10% of Bill's authored size on every axis (trees, G.HEIGHT_FIT: height within 10% and canopy
+footprint no more than 10% larger, since they are scaled uniformly to Bill's height). Read REPORT.md and HANDOFF.md yourself before
 applying; this script does not judge facing or looks.
 """
 import hashlib, json, os, shutil, subprocess, sys
@@ -124,7 +125,10 @@ def main():
             dev = [(m - b) / b * 100 for m, b in ((mx, bx), (my, by), (mz, bz))]
             print("  measured %.3f x %.3f x %.3f m vs Bill %.2f x %.2f x %.2f m (%+.1f%% %+.1f%% %+.1f%%), %d tris" % (
                 mx, my, mz, bx, by, bz, dev[0], dev[1], dev[2], ntris))
-            if any(abs(d) > 10 for d in dev):
+            if asset in G.HEIGHT_FIT:
+                if abs(dev[1]) > 10 or dev[0] > 10 or dev[2] > 10:
+                    problems.append("tree height not within 10% of Bill's or footprint more than 10% larger")
+            elif any(abs(d) > 10 for d in dev):
                 problems.append("bounding box not within 10% of Bill's size on every axis")
             if problems:
                 sys.exit("refusing to copy %s: %s" % (n, "; ".join(problems)))
