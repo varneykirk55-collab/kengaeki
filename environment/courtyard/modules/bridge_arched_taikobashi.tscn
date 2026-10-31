@@ -1,0 +1,348 @@
+[gd_scene load_steps=45 format=3]
+
+[ext_resource type="Script" path="res://environment/courtyard/scripts/courtyard_prop.gd" id="1"]
+[ext_resource type="Material" path="res://environment/courtyard/materials/gb_lacquer.tres" id="2"]
+
+[sub_resource type="BoxMesh" id="BoxMesh_1"]
+size = Vector3(1.5602, 0.3, 2.4)
+
+[sub_resource type="BoxMesh" id="BoxMesh_2"]
+size = Vector3(1.5602, 1, 0.15)
+
+[sub_resource type="BoxMesh" id="BoxMesh_3"]
+size = Vector3(1.5602, 1, 0.15)
+
+[sub_resource type="BoxMesh" id="BoxMesh_4"]
+size = Vector3(0.5841, 0.3, 2.4)
+
+[sub_resource type="BoxMesh" id="BoxMesh_5"]
+size = Vector3(0.5841, 1, 0.15)
+
+[sub_resource type="BoxMesh" id="BoxMesh_6"]
+size = Vector3(0.5841, 1, 0.15)
+
+[sub_resource type="BoxMesh" id="BoxMesh_7"]
+size = Vector3(0.3199, 0.3, 2.4)
+
+[sub_resource type="BoxMesh" id="BoxMesh_8"]
+size = Vector3(0.3199, 1, 0.15)
+
+[sub_resource type="BoxMesh" id="BoxMesh_9"]
+size = Vector3(0.3199, 1, 0.15)
+
+[sub_resource type="BoxMesh" id="BoxMesh_10"]
+size = Vector3(1.3312, 0.3, 2.4)
+
+[sub_resource type="BoxMesh" id="BoxMesh_11"]
+size = Vector3(1.3312, 1, 0.15)
+
+[sub_resource type="BoxMesh" id="BoxMesh_12"]
+size = Vector3(1.3312, 1, 0.15)
+
+[sub_resource type="BoxMesh" id="BoxMesh_13"]
+size = Vector3(1.5676, 0.3, 2.4)
+
+[sub_resource type="BoxMesh" id="BoxMesh_14"]
+size = Vector3(1.5676, 1, 0.15)
+
+[sub_resource type="BoxMesh" id="BoxMesh_15"]
+size = Vector3(1.5676, 1, 0.15)
+
+[sub_resource type="BoxMesh" id="BoxMesh_16"]
+size = Vector3(1.3115, 0.3, 2.4)
+
+[sub_resource type="BoxMesh" id="BoxMesh_17"]
+size = Vector3(1.3115, 1, 0.15)
+
+[sub_resource type="BoxMesh" id="BoxMesh_18"]
+size = Vector3(1.3115, 1, 0.15)
+
+[sub_resource type="BoxMesh" id="BoxMesh_19"]
+size = Vector3(0.8101, 0.3, 2.4)
+
+[sub_resource type="BoxMesh" id="BoxMesh_20"]
+size = Vector3(0.8101, 1, 0.15)
+
+[sub_resource type="BoxMesh" id="BoxMesh_21"]
+size = Vector3(0.8101, 1, 0.15)
+
+[sub_resource type="BoxMesh" id="BoxMesh_22"]
+size = Vector3(0.8101, 0.3, 2.4)
+
+[sub_resource type="BoxMesh" id="BoxMesh_23"]
+size = Vector3(0.8101, 1, 0.15)
+
+[sub_resource type="BoxMesh" id="BoxMesh_24"]
+size = Vector3(0.8101, 1, 0.15)
+
+[sub_resource type="BoxMesh" id="BoxMesh_25"]
+size = Vector3(1.3115, 0.3, 2.4)
+
+[sub_resource type="BoxMesh" id="BoxMesh_26"]
+size = Vector3(1.3115, 1, 0.15)
+
+[sub_resource type="BoxMesh" id="BoxMesh_27"]
+size = Vector3(1.3115, 1, 0.15)
+
+[sub_resource type="BoxMesh" id="BoxMesh_28"]
+size = Vector3(1.5676, 0.3, 2.4)
+
+[sub_resource type="BoxMesh" id="BoxMesh_29"]
+size = Vector3(1.5676, 1, 0.15)
+
+[sub_resource type="BoxMesh" id="BoxMesh_30"]
+size = Vector3(1.5676, 1, 0.15)
+
+[sub_resource type="BoxMesh" id="BoxMesh_31"]
+size = Vector3(1.3312, 0.3, 2.4)
+
+[sub_resource type="BoxMesh" id="BoxMesh_32"]
+size = Vector3(1.3312, 1, 0.15)
+
+[sub_resource type="BoxMesh" id="BoxMesh_33"]
+size = Vector3(1.3312, 1, 0.15)
+
+[sub_resource type="BoxMesh" id="BoxMesh_34"]
+size = Vector3(0.3199, 0.3, 2.4)
+
+[sub_resource type="BoxMesh" id="BoxMesh_35"]
+size = Vector3(0.3199, 1, 0.15)
+
+[sub_resource type="BoxMesh" id="BoxMesh_36"]
+size = Vector3(0.3199, 1, 0.15)
+
+[sub_resource type="BoxMesh" id="BoxMesh_37"]
+size = Vector3(0.5841, 0.3, 2.4)
+
+[sub_resource type="BoxMesh" id="BoxMesh_38"]
+size = Vector3(0.5841, 1, 0.15)
+
+[sub_resource type="BoxMesh" id="BoxMesh_39"]
+size = Vector3(0.5841, 1, 0.15)
+
+[sub_resource type="BoxMesh" id="BoxMesh_40"]
+size = Vector3(1.5602, 0.3, 2.4)
+
+[sub_resource type="BoxMesh" id="BoxMesh_41"]
+size = Vector3(1.5602, 1, 0.15)
+
+[sub_resource type="BoxMesh" id="BoxMesh_42"]
+size = Vector3(1.5602, 1, 0.15)
+
+[node name="bridge_arched_taikobashi" type="Node3D"]
+script = ExtResource("1")
+model_path = "res://environment/courtyard/assets/Courtyard/bridge_arched_taikobashi/bridge_arched_taikobashi.glb"
+model_offset = Vector3(0, -0.4, 0)
+authored_size = Vector3(13, 2.05, 2.4)
+
+[node name="Graybox" type="Node3D" parent="."]
+
+[node name="Deck0" type="MeshInstance3D" parent="Graybox"]
+transform = Transform3D(0.9999, -0.0153, 0, 0.0153, 0.9999, 0, 0, 0, 1, -6.2477, -0.1385, 0)
+mesh = SubResource("BoxMesh_1")
+material_override = ExtResource("2")
+
+[node name="Rail0-1.27" type="MeshInstance3D" parent="Graybox"]
+transform = Transform3D(0.9999, -0.0153, 0, 0.0153, 0.9999, 0, 0, 0, 1, -6.2577, 0.5114, -1.275)
+mesh = SubResource("BoxMesh_2")
+material_override = ExtResource("2")
+
+[node name="Rail0+1.27" type="MeshInstance3D" parent="Graybox"]
+transform = Transform3D(0.9999, -0.0153, 0, 0.0153, 0.9999, 0, 0, 0, 1, -6.2577, 0.5114, 1.275)
+mesh = SubResource("BoxMesh_3")
+material_override = ExtResource("2")
+
+[node name="Deck1" type="MeshInstance3D" parent="Graybox"]
+transform = Transform3D(0.9541, -0.2996, 0, 0.2996, 0.9541, 0, 0, 0, 1, -5.2051, -0.0416, 0)
+mesh = SubResource("BoxMesh_4")
+material_override = ExtResource("2")
+
+[node name="Rail1-1.27" type="MeshInstance3D" parent="Graybox"]
+transform = Transform3D(0.9541, -0.2996, 0, 0.2996, 0.9541, 0, 0, 0, 1, -5.3998, 0.5785, -1.275)
+mesh = SubResource("BoxMesh_5")
+material_override = ExtResource("2")
+
+[node name="Rail1+1.27" type="MeshInstance3D" parent="Graybox"]
+transform = Transform3D(0.9541, -0.2996, 0, 0.2996, 0.9541, 0, 0, 0, 1, -5.3998, 0.5785, 1.275)
+mesh = SubResource("BoxMesh_6")
+material_override = ExtResource("2")
+
+[node name="Deck2" type="MeshInstance3D" parent="Graybox"]
+transform = Transform3D(0.962, -0.2732, 0, 0.2732, 0.962, 0, 0, 0, 1, -4.834, 0.0712, 0)
+mesh = SubResource("BoxMesh_7")
+material_override = ExtResource("2")
+
+[node name="Rail2-1.27" type="MeshInstance3D" parent="Graybox"]
+transform = Transform3D(0.962, -0.2732, 0, 0.2732, 0.962, 0, 0, 0, 1, -5.0116, 0.6965, -1.275)
+mesh = SubResource("BoxMesh_8")
+material_override = ExtResource("2")
+
+[node name="Rail2+1.27" type="MeshInstance3D" parent="Graybox"]
+transform = Transform3D(0.962, -0.2732, 0, 0.2732, 0.962, 0, 0, 0, 1, -5.0116, 0.6965, 1.275)
+mesh = SubResource("BoxMesh_9")
+material_override = ExtResource("2")
+
+[node name="Deck3" type="MeshInstance3D" parent="Graybox"]
+transform = Transform3D(0.9833, -0.1817, 0, 0.1817, 0.9833, 0, 0, 0, 1, -4.0977, 0.219, 0)
+mesh = SubResource("BoxMesh_10")
+material_override = ExtResource("2")
+
+[node name="Rail3-1.27" type="MeshInstance3D" parent="Graybox"]
+transform = Transform3D(0.9833, -0.1817, 0, 0.1817, 0.9833, 0, 0, 0, 1, -4.2159, 0.8582, -1.275)
+mesh = SubResource("BoxMesh_11")
+material_override = ExtResource("2")
+
+[node name="Rail3+1.27" type="MeshInstance3D" parent="Graybox"]
+transform = Transform3D(0.9833, -0.1817, 0, 0.1817, 0.9833, 0, 0, 0, 1, -4.2159, 0.8582, 1.275)
+mesh = SubResource("BoxMesh_12")
+material_override = ExtResource("2")
+
+[node name="Deck4" type="MeshInstance3D" parent="Graybox"]
+transform = Transform3D(0.995, -0.1002, 0, 0.1002, 0.995, 0, 0, 0, 1, -2.735, 0.4083, 0)
+mesh = SubResource("BoxMesh_13")
+material_override = ExtResource("2")
+
+[node name="Rail4-1.27" type="MeshInstance3D" parent="Graybox"]
+transform = Transform3D(0.995, -0.1002, 0, 0.1002, 0.995, 0, 0, 0, 1, -2.8001, 1.055, -1.275)
+mesh = SubResource("BoxMesh_14")
+material_override = ExtResource("2")
+
+[node name="Rail4+1.27" type="MeshInstance3D" parent="Graybox"]
+transform = Transform3D(0.995, -0.1002, 0, 0.1002, 0.995, 0, 0, 0, 1, -2.8001, 1.055, 1.275)
+mesh = SubResource("BoxMesh_15")
+material_override = ExtResource("2")
+
+[node name="Deck5" type="MeshInstance3D" parent="Graybox"]
+transform = Transform3D(0.9988, -0.0487, 0, 0.0487, 0.9988, 0, 0, 0, 1, -1.3677, 0.5137, 0)
+mesh = SubResource("BoxMesh_16")
+material_override = ExtResource("2")
+
+[node name="Rail5-1.27" type="MeshInstance3D" parent="Graybox"]
+transform = Transform3D(0.9988, -0.0487, 0, 0.0487, 0.9988, 0, 0, 0, 1, -1.3994, 1.1629, -1.275)
+mesh = SubResource("BoxMesh_17")
+material_override = ExtResource("2")
+
+[node name="Rail5+1.27" type="MeshInstance3D" parent="Graybox"]
+transform = Transform3D(0.9988, -0.0487, 0, 0.0487, 0.9988, 0, 0, 0, 1, -1.3994, 1.1629, 1.275)
+mesh = SubResource("BoxMesh_18")
+material_override = ExtResource("2")
+
+[node name="Deck6" type="MeshInstance3D" parent="Graybox"]
+transform = Transform3D(0.9999, -0.0133, 0, 0.0133, 0.9999, 0, 0, 0, 1, -0.373, 0.549, 0)
+mesh = SubResource("BoxMesh_19")
+material_override = ExtResource("2")
+
+[node name="Rail6-1.27" type="MeshInstance3D" parent="Graybox"]
+transform = Transform3D(0.9999, -0.0133, 0, 0.0133, 0.9999, 0, 0, 0, 1, -0.3817, 1.199, -1.275)
+mesh = SubResource("BoxMesh_20")
+material_override = ExtResource("2")
+
+[node name="Rail6+1.27" type="MeshInstance3D" parent="Graybox"]
+transform = Transform3D(0.9999, -0.0133, 0, 0.0133, 0.9999, 0, 0, 0, 1, -0.3817, 1.199, 1.275)
+mesh = SubResource("BoxMesh_21")
+material_override = ExtResource("2")
+
+[node name="Deck7" type="MeshInstance3D" parent="Graybox"]
+transform = Transform3D(0.9999, 0.0133, 0, -0.0133, 0.9999, 0, 0, 0, 1, 0.373, 0.549, 0)
+mesh = SubResource("BoxMesh_22")
+material_override = ExtResource("2")
+
+[node name="Rail7-1.27" type="MeshInstance3D" parent="Graybox"]
+transform = Transform3D(0.9999, 0.0133, 0, -0.0133, 0.9999, 0, 0, 0, 1, 0.3817, 1.199, -1.275)
+mesh = SubResource("BoxMesh_23")
+material_override = ExtResource("2")
+
+[node name="Rail7+1.27" type="MeshInstance3D" parent="Graybox"]
+transform = Transform3D(0.9999, 0.0133, 0, -0.0133, 0.9999, 0, 0, 0, 1, 0.3817, 1.199, 1.275)
+mesh = SubResource("BoxMesh_24")
+material_override = ExtResource("2")
+
+[node name="Deck8" type="MeshInstance3D" parent="Graybox"]
+transform = Transform3D(0.9988, 0.0487, 0, -0.0487, 0.9988, 0, 0, 0, 1, 1.3677, 0.5137, 0)
+mesh = SubResource("BoxMesh_25")
+material_override = ExtResource("2")
+
+[node name="Rail8-1.27" type="MeshInstance3D" parent="Graybox"]
+transform = Transform3D(0.9988, 0.0487, 0, -0.0487, 0.9988, 0, 0, 0, 1, 1.3994, 1.1629, -1.275)
+mesh = SubResource("BoxMesh_26")
+material_override = ExtResource("2")
+
+[node name="Rail8+1.27" type="MeshInstance3D" parent="Graybox"]
+transform = Transform3D(0.9988, 0.0487, 0, -0.0487, 0.9988, 0, 0, 0, 1, 1.3994, 1.1629, 1.275)
+mesh = SubResource("BoxMesh_27")
+material_override = ExtResource("2")
+
+[node name="Deck9" type="MeshInstance3D" parent="Graybox"]
+transform = Transform3D(0.995, 0.1002, 0, -0.1002, 0.995, 0, 0, 0, 1, 2.735, 0.4083, 0)
+mesh = SubResource("BoxMesh_28")
+material_override = ExtResource("2")
+
+[node name="Rail9-1.27" type="MeshInstance3D" parent="Graybox"]
+transform = Transform3D(0.995, 0.1002, 0, -0.1002, 0.995, 0, 0, 0, 1, 2.8001, 1.055, -1.275)
+mesh = SubResource("BoxMesh_29")
+material_override = ExtResource("2")
+
+[node name="Rail9+1.27" type="MeshInstance3D" parent="Graybox"]
+transform = Transform3D(0.995, 0.1002, 0, -0.1002, 0.995, 0, 0, 0, 1, 2.8001, 1.055, 1.275)
+mesh = SubResource("BoxMesh_30")
+material_override = ExtResource("2")
+
+[node name="Deck10" type="MeshInstance3D" parent="Graybox"]
+transform = Transform3D(0.9833, 0.1817, 0, -0.1817, 0.9833, 0, 0, 0, 1, 4.0977, 0.219, 0)
+mesh = SubResource("BoxMesh_31")
+material_override = ExtResource("2")
+
+[node name="Rail10-1.27" type="MeshInstance3D" parent="Graybox"]
+transform = Transform3D(0.9833, 0.1817, 0, -0.1817, 0.9833, 0, 0, 0, 1, 4.2159, 0.8582, -1.275)
+mesh = SubResource("BoxMesh_32")
+material_override = ExtResource("2")
+
+[node name="Rail10+1.27" type="MeshInstance3D" parent="Graybox"]
+transform = Transform3D(0.9833, 0.1817, 0, -0.1817, 0.9833, 0, 0, 0, 1, 4.2159, 0.8582, 1.275)
+mesh = SubResource("BoxMesh_33")
+material_override = ExtResource("2")
+
+[node name="Deck11" type="MeshInstance3D" parent="Graybox"]
+transform = Transform3D(0.962, 0.2732, 0, -0.2732, 0.962, 0, 0, 0, 1, 4.834, 0.0712, 0)
+mesh = SubResource("BoxMesh_34")
+material_override = ExtResource("2")
+
+[node name="Rail11-1.27" type="MeshInstance3D" parent="Graybox"]
+transform = Transform3D(0.962, 0.2732, 0, -0.2732, 0.962, 0, 0, 0, 1, 5.0116, 0.6965, -1.275)
+mesh = SubResource("BoxMesh_35")
+material_override = ExtResource("2")
+
+[node name="Rail11+1.27" type="MeshInstance3D" parent="Graybox"]
+transform = Transform3D(0.962, 0.2732, 0, -0.2732, 0.962, 0, 0, 0, 1, 5.0116, 0.6965, 1.275)
+mesh = SubResource("BoxMesh_36")
+material_override = ExtResource("2")
+
+[node name="Deck12" type="MeshInstance3D" parent="Graybox"]
+transform = Transform3D(0.9541, 0.2996, 0, -0.2996, 0.9541, 0, 0, 0, 1, 5.2051, -0.0416, 0)
+mesh = SubResource("BoxMesh_37")
+material_override = ExtResource("2")
+
+[node name="Rail12-1.27" type="MeshInstance3D" parent="Graybox"]
+transform = Transform3D(0.9541, 0.2996, 0, -0.2996, 0.9541, 0, 0, 0, 1, 5.3998, 0.5785, -1.275)
+mesh = SubResource("BoxMesh_38")
+material_override = ExtResource("2")
+
+[node name="Rail12+1.27" type="MeshInstance3D" parent="Graybox"]
+transform = Transform3D(0.9541, 0.2996, 0, -0.2996, 0.9541, 0, 0, 0, 1, 5.3998, 0.5785, 1.275)
+mesh = SubResource("BoxMesh_39")
+material_override = ExtResource("2")
+
+[node name="Deck13" type="MeshInstance3D" parent="Graybox"]
+transform = Transform3D(0.9999, 0.0153, 0, -0.0153, 0.9999, 0, 0, 0, 1, 6.2477, -0.1385, 0)
+mesh = SubResource("BoxMesh_40")
+material_override = ExtResource("2")
+
+[node name="Rail13-1.27" type="MeshInstance3D" parent="Graybox"]
+transform = Transform3D(0.9999, 0.0153, 0, -0.0153, 0.9999, 0, 0, 0, 1, 6.2577, 0.5114, -1.275)
+mesh = SubResource("BoxMesh_41")
+material_override = ExtResource("2")
+
+[node name="Rail13+1.27" type="MeshInstance3D" parent="Graybox"]
+transform = Transform3D(0.9999, 0.0153, 0, -0.0153, 0.9999, 0, 0, 0, 1, 6.2577, 0.5114, 1.275)
+mesh = SubResource("BoxMesh_42")
+material_override = ExtResource("2")

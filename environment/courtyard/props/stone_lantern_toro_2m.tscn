@@ -1,0 +1,77 @@
+[gd_scene load_steps=9 format=3]
+
+[ext_resource type="Script" path="res://environment/courtyard/scripts/courtyard_prop.gd" id="1"]
+[ext_resource type="Material" path="res://environment/courtyard/materials/gb_stone.tres" id="2"]
+
+[sub_resource type="BoxMesh" id="BoxMesh_1"]
+size = Vector3(0.9, 0.3, 0.9)
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_2"]
+top_radius = 0.16
+bottom_radius = 0.2
+height = 1
+radial_segments = 8
+rings = 1
+
+[sub_resource type="BoxMesh" id="BoxMesh_3"]
+size = Vector3(0.6, 0.36, 0.6)
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_4"]
+top_radius = 0.08
+bottom_radius = 0.5
+height = 0.28
+radial_segments = 6
+rings = 1
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_5"]
+top_radius = 0
+bottom_radius = 0.07
+height = 0.12
+radial_segments = 6
+rings = 1
+
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_6"]
+radius = 0.45
+height = 2
+
+[node name="stone_lantern_toro_2m" type="Node3D"]
+script = ExtResource("1")
+model_path = "res://environment/courtyard/assets/Decorations/stone_lantern_toro/stone_lantern_toro_lod8k.glb"
+authored_size = Vector3(0.83, 2, 0.92)
+model_visibility_range_end = 55
+model_visibility_range_end_margin = 5
+
+[node name="Graybox" type="Node3D" parent="."]
+
+[node name="Collision" type="StaticBody3D" parent="."]
+collision_layer = 1
+collision_mask = 0
+
+[node name="Plinth" type="MeshInstance3D" parent="Graybox"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.15, 0)
+mesh = SubResource("BoxMesh_1")
+material_override = ExtResource("2")
+
+[node name="Pillar" type="MeshInstance3D" parent="Graybox"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.8, 0)
+mesh = SubResource("CylinderMesh_2")
+material_override = ExtResource("2")
+
+[node name="Firebox" type="MeshInstance3D" parent="Graybox"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.48, 0)
+mesh = SubResource("BoxMesh_3")
+material_override = ExtResource("2")
+
+[node name="Roof" type="MeshInstance3D" parent="Graybox"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.8, 0)
+mesh = SubResource("CylinderMesh_4")
+material_override = ExtResource("2")
+
+[node name="Finial" type="MeshInstance3D" parent="Graybox"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.98, 0)
+mesh = SubResource("CylinderMesh_5")
+material_override = ExtResource("2")
+
+[node name="Shape" type="CollisionShape3D" parent="Collision"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
+shape = SubResource("CylinderShape3D_6")

@@ -1,0 +1,38 @@
+# Courtyard asset credits and AI-generation notice
+
+**The 3D models and textures under `environment/courtyard/assets/` are AI-generated.** They
+were generated with Tencent Hunyuan 3D (web platform) and then post-processed (decimated,
+re-textured to 2048², re-scaled, origin set to base centre) by Agent 2 (BJORN)'s asset
+pipeline. No AI-generation marks were removed.
+
+Per-asset provenance (library source, bytes, sha256, processing time) is in `ASSETS.md`.
+BJORN's licence research for these outputs is at `library/LICENSE_NOTES.md` on the shared
+build box (not legal advice; some terms are still unverified there).
+
+| Asset | Generator | Post-processing |
+|---|---|---|
+| `Decorations/stone_lantern_toro` (`stone_lantern_toro_lod8k.glb`) | Tencent Hunyuan 3D (AI-generated) | BJORN pipeline: 50,012 → 8,000 tris, 1024² textures (JPEG albedo), scaled to 2.0 m |
+| `Courtyard/wall_segment_4m` | Tencent Hunyuan 3D (AI-generated) | BJORN pipeline: 13,134 tris, 3 × 1024² textures, 4.00 × 4.74 × 1.59 m, tiling ends checked |
+| `Courtyard/corner_turret` | Tencent Hunyuan 3D (AI-generated) | BJORN pipeline: 12,000 tris, 2048² albedo (JPEG) + 1024² data maps, 7.48 × 10.72 × 7.46 m |
+| `Courtyard/main_gate_yaguramon` (`main_gate_yaguramon_wide.glb`) | Tencent Hunyuan 3D (AI-generated) | BJORN pipeline batch 4: 20,000 tris, JPEG albedo + data maps, 15.34 × 10.43 × 8.32 m, doors on +Z (replaces the 14.67 m gate, removed) |
+| `Courtyard/main_hall_goten` | Tencent Hunyuan 3D (AI-generated) | BJORN pipeline: 50,004 → 25,000 tris, 2048² albedo (JPEG) + 1024² data maps, 22.93 × 9.42 × 12.00 m |
+| `Courtyard/bridge_arched_taikobashi` | Tencent Hunyuan 3D (AI-generated) | BJORN pipeline: 8,000 tris, 1024² textures, non-uniform fit to 13 × 1.8 × 2.4 m (anisotropy 3.14). v2 (Oct 30, 8:06 PM EDT): symmetric, 8 piers extended down, origin at the pier bottoms, 13 × 2.05 × 2.4 m, 8,000 tris; v1 stays in git history and in BJORN's library as `_v1.glb` |
+| `Courtyard/barracks_nagaya` | Tencent Hunyuan 3D (AI-generated) | BJORN pipeline: 12,000 tris, 1024² textures (JPEG albedo), 24 × 6 × 6 m |
+| `Courtyard/storehouse_kura` | Tencent Hunyuan 3D (AI-generated) | BJORN pipeline: 6,000 tris, 1024² textures, 8 × 7 × 6 m, door +Z |
+| `Courtyard/bridge_stone_slab` (`bridge_stone_slab_deck2m.glb`) | Tencent Hunyuan 3D (AI-generated) | BJORN pipeline: 2,000 tris, 1024² textures, 11 × 0.4 × 2.667 m (deck 2.0 m wide variant) |
+| `Courtyard/tree_pine_kuromatsu` | Tencent Hunyuan 3D (AI-generated) | BJORN pipeline: 12,000 tris, 1024² textures, 6.25 × 7 × 3.58 m, origin at trunk base |
+| `Courtyard/tree_sakura` | Tencent Hunyuan 3D (AI-generated) | BJORN pipeline: 11,986 tris, 1024² textures, 5.81 × 6 × 5.22 m, origin at trunk base |
+| `Courtyard/tree_maple_momiji` | Tencent Hunyuan 3D (AI-generated) | BJORN pipeline: 10,000 tris, 1024² textures, 4.04 × 5 × 4.04 m, origin at trunk base |
+| `Courtyard/castle_keep_tenshu` | Tencent Hunyuan 3D (AI-generated) | BJORN pipeline: 20,000 tris, 1024² textures (JPEG albedo), 30 × 28 × 22 m, backdrop only |
+| `Courtyard/tree_*/tree_*_lod3k.glb` (pine, sakura, maple) | Tencent Hunyuan 3D (AI-generated) | BJORN pipeline LOD pack: 4,000 / 3,491 / 3,986 tris, drawn with LOD0's textures (none committed) |
+| `Courtyard/wall_segment_4m` (`_lod1`, `_lod2`) | Tencent Hunyuan 3D (AI-generated) | BJORN pipeline LOD pack: 5,000 / 404 tris, rebaked textures, same 4.00 m tiling ends |
+| `Courtyard/corner_turret` (`_lod1`, `_lod2`) | Tencent Hunyuan 3D (AI-generated) | BJORN pipeline LOD pack: 5,400 tris (LOD0's textures) / 1,997 tris (rebaked textures) |
+| `Courtyard/barracks_nagaya` (`_lod1`, `_lod2`) | Tencent Hunyuan 3D (AI-generated) | BJORN pipeline LOD pack: 5,379 / 1,978 tris, rebaked textures |
+| `Courtyard/storehouse_kura` (`_lod1`, `_lod2`) | Tencent Hunyuan 3D (AI-generated) | BJORN pipeline LOD pack: 2,700 / 1,000 tris, rebaked textures |
+| `Courtyard/bridge_stone_slab` (albedo v2) | Tencent Hunyuan 3D (AI-generated) | BJORN pipeline: albedo regraded darker (mean RGB 150/150/139 → 112/108/95), same mesh |
+| `Courtyard/rock_formation_large` (+ `_b`) | Tencent Hunyuan 3D (AI-generated) | BJORN pipeline batch 4: 4,000 tris each, 2.78 × 1.98 × 2.70 m / 3.40 × 2.15 × 2.21 m (`_b`, used at 0.9) |
+| `Courtyard/rock_small_cluster` (+ `_b`) | Tencent Hunyuan 3D (AI-generated) | BJORN pipeline batch 4: 1,000 tris each, used at 0.9 scale |
+| `Courtyard/pond_edge_stones_2m` (+ `_b`) | Tencent Hunyuan 3D (AI-generated) | BJORN pipeline batch 4: 2,000 / 1,998 tris, 2.00 × 0.226 × 0.443 m / 2.00 × 0.284 × 0.490 m, scaled up in the scene |
+| `Courtyard/shrub_azalea` (+ `_b`) | Tencent Hunyuan 3D (AI-generated) | BJORN pipeline batch 4: 1,970 / 1,978 tris, ~1.49 × 1.08 × 1.48 m (Y ×1.2 in the scene) |
+| `Courtyard/rock_medium` | Tencent Hunyuan 3D (AI-generated) | BJORN pipeline batch 4 (regenerated): 2,000 tris, 1.5 × 1.0 × 1.2 m low boulder |
+| LOD rework (wall / barracks lod1, all lod2, turret lod1, tree lod3k) | Tencent Hunyuan 3D (AI-generated) | BJORN pipeline: lod1 and lod3k reuse LOD0's textures; wall / barracks / kura lod2 own 256 px textures; kura lod1 not used |

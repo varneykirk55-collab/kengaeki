@@ -1,0 +1,41 @@
+[gd_scene load_steps=8 format=3]
+
+[ext_resource type="Script" path="res://environment/courtyard/scripts/courtyard_prop.gd" id="1"]
+[ext_resource type="Material" path="res://environment/courtyard/materials/gb_stone.tres" id="2"]
+[ext_resource type="Material" path="res://environment/courtyard/materials/gb_plaster.tres" id="3"]
+[ext_resource type="Material" path="res://environment/courtyard/materials/gb_tile.tres" id="4"]
+
+[sub_resource type="BoxMesh" id="BoxMesh_1"]
+size = Vector3(4, 1.2, 1.7)
+
+[sub_resource type="BoxMesh" id="BoxMesh_2"]
+size = Vector3(4, 3.2, 1.6)
+
+[sub_resource type="BoxMesh" id="BoxMesh_3"]
+size = Vector3(4, 0.6, 2.1)
+
+[node name="wall_segment_4m" type="Node3D"]
+script = ExtResource("1")
+model_path = "res://environment/courtyard/assets/Courtyard/wall_segment_4m/wall_segment_4m.glb"
+authored_size = Vector3(4, 5, 1.6)
+model_lod_paths = PackedStringArray("res://environment/courtyard/assets/Courtyard/wall_segment_4m/wall_segment_4m_lod1.glb", "res://environment/courtyard/assets/Courtyard/wall_segment_4m/wall_segment_4m_lod2.glb")
+model_lod_distances = PackedFloat32Array(20, 45)
+model_lod_share_materials = PackedInt32Array(1, 0)
+model_lod_fade = 2
+
+[node name="Graybox" type="Node3D" parent="."]
+
+[node name="Base" type="MeshInstance3D" parent="Graybox"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.6, 0)
+mesh = SubResource("BoxMesh_1")
+material_override = ExtResource("2")
+
+[node name="Plaster" type="MeshInstance3D" parent="Graybox"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.8, 0)
+mesh = SubResource("BoxMesh_2")
+material_override = ExtResource("3")
+
+[node name="Cap" type="MeshInstance3D" parent="Graybox"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 4.7, 0)
+mesh = SubResource("BoxMesh_3")
+material_override = ExtResource("4")

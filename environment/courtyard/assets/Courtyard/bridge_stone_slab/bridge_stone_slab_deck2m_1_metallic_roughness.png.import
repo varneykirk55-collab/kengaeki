@@ -1,0 +1,38 @@
+[remap]
+
+importer="texture"
+type="CompressedTexture2D"
+uid="uid://cy5i54ivvn6xl"
+path.s3tc="res://.godot/imported/bridge_stone_slab_deck2m_1_metallic_roughness.png-55bffd18cbb94600f539c9b0de966f96.s3tc.ctex"
+metadata={
+"imported_formats": ["s3tc_bptc"],
+"vram_texture": true
+}
+generator_parameters={
+"md5": "05fac4fad4b2d9ed0cf7b57cee152ce7"
+}
+
+[deps]
+
+source_file="res://environment/courtyard/assets/Courtyard/bridge_stone_slab/bridge_stone_slab_deck2m_1_metallic_roughness.png"
+dest_files=["res://.godot/imported/bridge_stone_slab_deck2m_1_metallic_roughness.png-55bffd18cbb94600f539c9b0de966f96.s3tc.ctex"]
+
+[params]
+
+compress/mode=2
+compress/high_quality=false
+compress/lossy_quality=0.7
+compress/hdr_compression=1
+compress/normal_map=0
+compress/channel_pack=0
+mipmaps/generate=true
+mipmaps/limit=-1
+roughness/mode=0
+roughness/src_normal=""
+process/fix_alpha_border=true
+process/premult_alpha=false
+process/normal_map_invert_y=false
+process/hdr_as_srgb=false
+process/hdr_clamp_exposure=false
+process/size_limit=0
+detect_3d/compress_to=1
