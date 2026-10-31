@@ -6,6 +6,7 @@ extends SceneTree
 ##       -s res://tools/courtyard/render_views.gd -- OUT_DIR [LABEL] [--no-shots]
 ## Measurement overrides (to reproduce the pre-tuning state): --lod-bias=1 (also clears visibility
 ## ranges) --shadow-mode=2 --shadow-dist=90 ; --no-shadows ; --lod-threshold=PX.
+## LOD pack: --no-lods (LOD0 at every distance) ; --tint-lods (LOD0 green, LOD1 yellow, LOD2 red).
 ## The numbers are renderer counts, not FPS; llvmpipe FPS is not representative of a real GPU.
 
 const VIEWS := [
@@ -26,6 +27,8 @@ var lod_bias_override := -1.0
 var no_shadows := false
 var shadow_mode := -1
 var shadow_dist := -1.0
+var tint_lods := false
+var no_lods := false
 
 
 func _initialize() -> void:
@@ -48,6 +51,10 @@ func _initialize() -> void:
 			views.append([f[0], Vector3(float(f[1]), float(f[2]), float(f[3])), Vector3(float(f[4]), float(f[5]), float(f[6]))])
 		elif a == "--no-shadows":
 			no_shadows = true
+		elif a == "--tint-lods":  # LOD pack: flat colour per hand-made LOD level (0 green, 1 yellow, 2 red)
+			tint_lods = true
+		elif a == "--no-lods":  # LOD pack: LOD0 only at every distance (the pre-LOD-pack state)
+			no_lods = true
 		elif a.begins_with("--lod-threshold="):
 			get_root().mesh_lod_threshold = float(a.get_slice("=", 1))
 	# A script error in a -s script leaves Godot running; never hang a batch run.
@@ -76,6 +83,26 @@ func _run(arena: Node) -> void:
 		for g in arena.find_children("*", "GeometryInstance3D", true, false):
 			g.lod_bias = lod_bias_override
 			g.visibility_range_end = 0.0
+	if tint_lods or no_lods:
+		var cols := [Color(0.2, 0.8, 0.2), Color(0.95, 0.85, 0.1), Color(0.9, 0.2, 0.15)]
+		var mats := []
+		for c in cols:
+			var m := StandardMaterial3D.new()
+			m.albedo_color = c
+			mats.append(m)
+		for n in arena.find_children("LOD*", "Node3D", true, false):
+			if not n.has_meta("courtyard_lod"):
+				continue
+			var level: int = n.get_meta("courtyard_lod")
+			for g in n.find_children("*", "GeometryInstance3D", true, false) + ([n] if n is GeometryInstance3D else []):
+				if no_lods:
+					if level == 0:
+						g.visibility_range_end = 0.0
+						g.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_DISABLED
+					else:
+						g.visible = false
+				if tint_lods:
+					g.material_override = mats[mini(level, 2)]
 	var sun := arena.get_node(^"Sun") as DirectionalLight3D
 	if no_shadows:
 		sun.shadow_enabled = false
@@ -83,7 +110,7 @@ func _run(arena: Node) -> void:
 		sun.directional_shadow_mode = shadow_mode
 	if shadow_dist > 0.0:
 		sun.directional_shadow_max_distance = shadow_dist
-	print("RENDER settings lod_bias_override=%s no_shadows=%s mesh_lod_threshold=%s" % [lod_bias_override, no_shadows, root.mesh_lod_threshold])
+	print("RENDER settings lod_bias_override=%s no_shadows=%s mesh_lod_threshold=%s tint_lods=%s no_lods=%s" % [lod_bias_override, no_shadows, root.mesh_lod_threshold, tint_lods, no_lods])
 	var tot := [0, 0, 0]
 	for v in views:
 		cam.look_at_from_position(v[1], v[2], Vector3.UP)

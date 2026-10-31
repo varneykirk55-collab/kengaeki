@@ -27,7 +27,10 @@ def verts(asset):
         else:
             _, t = P.world_tris(p)
             v = np.unique(t.reshape(-1, 3).round(4), axis=0)
-            _cache[asset] = v + np.array(G.MODEL_FIT.get(asset, {}).get("offset", (0, 0, 0)))
+            fit = G.MODEL_FIT.get(asset, {})
+            # Same as CourtyardProp's Model holder: per-axis node scale (LOD pack: pine (1, 1, 1.3),
+            # maple (1.237, 1, 1.238)), then the offset.
+            _cache[asset] = v * np.array(fit.get("scale_xyz", (1, 1, 1))) + np.array(fit.get("offset", (0, 0, 0)))
     return _cache[asset]
 
 

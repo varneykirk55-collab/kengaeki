@@ -1,4 +1,4 @@
-[gd_scene load_steps=19 format=3]
+[gd_scene load_steps=21 format=3]
 
 [ext_resource type="PackedScene" path="res://environment/courtyard/modules/wall_segment_4m.tscn" id="1"]
 [ext_resource type="PackedScene" path="res://environment/courtyard/modules/corner_turret.tscn" id="2"]
@@ -14,10 +14,12 @@
 [ext_resource type="PackedScene" path="res://environment/courtyard/props/tree_maple_momiji.tscn" id="12"]
 [ext_resource type="PackedScene" path="res://environment/courtyard/props/tree_sakura.tscn" id="13"]
 [ext_resource type="PackedScene" path="res://environment/courtyard/props/rock_formation_large.tscn" id="14"]
-[ext_resource type="PackedScene" path="res://environment/courtyard/props/rock_medium.tscn" id="15"]
-[ext_resource type="PackedScene" path="res://environment/courtyard/props/rock_small_cluster.tscn" id="16"]
-[ext_resource type="PackedScene" path="res://environment/courtyard/props/shrub_azalea.tscn" id="17"]
-[ext_resource type="PackedScene" path="res://environment/courtyard/modules/pond_edge_stones_2m.tscn" id="18"]
+[ext_resource type="PackedScene" path="res://environment/courtyard/props/rock_formation_large_b.tscn" id="15"]
+[ext_resource type="PackedScene" path="res://environment/courtyard/props/rock_medium.tscn" id="16"]
+[ext_resource type="PackedScene" path="res://environment/courtyard/props/rock_small_cluster.tscn" id="17"]
+[ext_resource type="PackedScene" path="res://environment/courtyard/props/rock_small_cluster_b.tscn" id="18"]
+[ext_resource type="PackedScene" path="res://environment/courtyard/props/shrub_azalea.tscn" id="19"]
+[ext_resource type="PackedScene" path="res://environment/courtyard/modules/pond_edge_stones_2m.tscn" id="20"]
 
 
 [node name="PrefabGallery" type="Node3D"]
@@ -64,17 +66,23 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 178.83, 0, 0)
 [node name="rock_formation_large" parent="." instance=ExtResource("14")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 185.33, 0, 0)
 
-[node name="rock_medium" parent="." instance=ExtResource("15")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 189.58, 0, 0)
+[node name="rock_formation_large_b" parent="." instance=ExtResource("15")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 190.33, 0, 0)
 
-[node name="rock_small_cluster" parent="." instance=ExtResource("16")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 192.73, 0, 0)
+[node name="rock_medium" parent="." instance=ExtResource("16")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 194.58, 0, 0)
 
-[node name="shrub_azalea" parent="." instance=ExtResource("17")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 195.93, 0, 0)
+[node name="rock_small_cluster" parent="." instance=ExtResource("17")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 197.73, 0, 0)
 
-[node name="pond_edge_stones_2m" parent="." instance=ExtResource("18")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 199.73, 0, 0)
+[node name="rock_small_cluster_b" parent="." instance=ExtResource("18")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 200.53, 0, 0)
+
+[node name="shrub_azalea" parent="." instance=ExtResource("19")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 203.73, 0, 0)
+
+[node name="pond_edge_stones_2m" parent="." instance=ExtResource("20")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 207.53, 0, 0)
 
 [node name="Sun" type="DirectionalLight3D" parent="."]
 rotation = Vector3(-0.85, 0.65, 0)

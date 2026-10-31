@@ -1,0 +1,38 @@
+[remap]
+
+importer="texture"
+type="CompressedTexture2D"
+uid="uid://bw0xkv6qnwk1b"
+path.s3tc="res://.godot/imported/wall_segment_4m_lod2_metallic_roughness.png-fd9bd2ce3e70ad76a3e20a2b424f5c0f.s3tc.ctex"
+metadata={
+"imported_formats": ["s3tc_bptc"],
+"vram_texture": true
+}
+generator_parameters={
+"md5": "1d02d864d6f114cc58a105a8c2fe75bd"
+}
+
+[deps]
+
+source_file="res://environment/courtyard/assets/Courtyard/wall_segment_4m/wall_segment_4m_lod2_metallic_roughness.png"
+dest_files=["res://.godot/imported/wall_segment_4m_lod2_metallic_roughness.png-fd9bd2ce3e70ad76a3e20a2b424f5c0f.s3tc.ctex"]
+
+[params]
+
+compress/mode=2
+compress/high_quality=false
+compress/lossy_quality=0.7
+compress/hdr_compression=1
+compress/normal_map=0
+compress/channel_pack=0
+mipmaps/generate=true
+mipmaps/limit=-1
+roughness/mode=0
+roughness/src_normal=""
+process/fix_alpha_border=true
+process/premult_alpha=false
+process/normal_map_invert_y=false
+process/hdr_as_srgb=false
+process/hdr_clamp_exposure=false
+process/size_limit=0
+detect_3d/compress_to=1

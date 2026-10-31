@@ -1,4 +1,4 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene load_steps=5 format=3]
 
 [ext_resource type="Script" path="res://environment/courtyard/scripts/courtyard_prop.gd" id="1"]
 [ext_resource type="Material" path="res://environment/courtyard/materials/gb_stone.tres" id="2"]
@@ -9,14 +9,29 @@ height = 0.4
 radial_segments = 12
 rings = 6
 
+[sub_resource type="BoxShape3D" id="BoxShape3D_2"]
+size = Vector3(0.597, 0.435, 0.575)
+
 [node name="rock_small_cluster" type="Node3D"]
 script = ExtResource("1")
-model_path = "res://environment/courtyard/assets/Rocks/rock_small_cluster/rock_small_cluster.glb"
+model_path = "res://environment/courtyard/assets/Courtyard/rock_small_cluster/rock_small_cluster.glb"
+model_scale = 0.9
 authored_size = Vector3(0.8, 0.4, 0.6)
+size_tolerance_pct = Vector2(-40, 25)
+model_visibility_range_end = 45
+model_visibility_range_end_margin = 5
 
 [node name="Graybox" type="Node3D" parent="."]
+
+[node name="Collision" type="StaticBody3D" parent="."]
+collision_layer = 1
+collision_mask = 0
 
 [node name="Body" type="MeshInstance3D" parent="Graybox"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.2, 0)
 mesh = SubResource("SphereMesh_1")
 material_override = ExtResource("2")
+
+[node name="Shape" type="CollisionShape3D" parent="Collision"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.217, 0)
+shape = SubResource("BoxShape3D_2")

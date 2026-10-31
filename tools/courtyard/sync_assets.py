@@ -15,7 +15,9 @@ in place, so a mismatch means a delivery is in flight); the git cost (GLB + Godo
 stats.json git_cost) is <= 10 MB (repo policy, no LFS); the asset has a REPORT.md and a MANIFEST.json
 entry whose validation starts with PASS; and the GLB's own bounding box (measured here with glb_probe.py)
 is within 10% of Bill's authored size on every axis (trees, G.HEIGHT_FIT: height within 10% and canopy
-footprint no more than 10% larger, since they are scaled uniformly to Bill's height). Read REPORT.md and HANDOFF.md yourself before
+footprint no more than 10% larger, since they are scaled uniformly to Bill's height; G.SIZE_TOL assets:
+the documented per-asset range), measured at the node scale the integration applies (G.VARIANTS,
+G.MODEL_FIT scale_xyz). Read REPORT.md and HANDOFF.md yourself before
 applying; this script does not judge facing or looks.
 """
 import hashlib, json, os, shutil, subprocess, sys
@@ -121,6 +123,12 @@ def main():
             elif not valid.startswith("PASS"):
                 problems.append("validation is not PASS")
             (mx, my, mz), ntris = measured_size(glb)
+            # Node scale the integration applies (G.VARIANTS uniform scale, G.MODEL_FIT scale_xyz).
+            k = G.VARIANTS.get(asset, {}).get(variant, {}).get("scale", 1.0)
+            kx, ky, kz = G.MODEL_FIT.get(asset, {}).get("scale_xyz", (1, 1, 1))
+            mx, my, mz = mx * k * kx, my * k * ky, mz * k * kz
+            if (k, kx, ky, kz) != (1.0, 1, 1, 1):
+                print("  (at the integration's node scale %g x (%g, %g, %g))" % (k, kx, ky, kz))
             bx, by, bz = sizes[asset]
             dev = [(m - b) / b * 100 for m, b in ((mx, bx), (my, by), (mz, bz))]
             print("  measured %.3f x %.3f x %.3f m vs Bill %.2f x %.2f x %.2f m (%+.1f%% %+.1f%% %+.1f%%), %d tris" % (
@@ -128,6 +136,10 @@ def main():
             if asset in G.HEIGHT_FIT:
                 if abs(dev[1]) > 10 or dev[0] > 10 or dev[2] > 10:
                     problems.append("tree height not within 10% of Bill's or footprint more than 10% larger")
+            elif asset in G.SIZE_TOL:
+                lo, hi = G.SIZE_TOL[asset]
+                if any(d < lo or d > hi for d in dev):
+                    problems.append("bounding box outside %+g..%+g%% of Bill's size (G.SIZE_TOL)" % (lo, hi))
             elif any(abs(d) > 10 for d in dev):
                 problems.append("bounding box not within 10% of Bill's size on every axis")
             if problems:

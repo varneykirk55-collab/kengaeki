@@ -239,6 +239,7 @@ func _blueprint_checks(arena: Node, map: RID, space: PhysicsDirectSpaceState3D, 
 					"%s: lantern model ~2 m, base at origin (aabb %s)" % [n.name, ab])
 	check(lanterns == 10 and with_model == lanterns, "all %d lanterns use the real GLB (%d with model)" % [lanterns, with_model])
 	_model_checks(arena)
+	_small_rock_checks(arena, map)
 	_camera_clearance(arena, space, spawns)
 	# Routes that must exist.
 	for pair in [["pond north -> south", Vector3(31, 0, -9), Vector3(31, 0, 9)],
@@ -291,31 +292,134 @@ func _model_checks(arena: Node) -> void:
 				"%s: model base at y %.2f, trunk origin inside the canopy footprint x %.2f..%.2f z %.2f..%.2f" % [key, ab.position.y, ab.position.x, ab.end.x, ab.position.z, ab.end.z])
 			var meshes := {}
 			for n in nodes:
-				for c in _all(n.get_node(^"Model")):
+				for c in _all(n.get_model_lod(0)):
 					if c is MeshInstance3D:
 						meshes[(c as MeshInstance3D).mesh.get_instance_id()] = true
 			check(meshes.size() == 1, "%s: %d instances share %d imported mesh resource(s)" % [key, nodes.size(), meshes.size()])
+			_lod_checks(key, nodes)
 			continue
-		check(absf(dev.x) <= 10.0 and absf(dev.y) <= 10.0 and absf(dev.z) <= 10.0,
-			"%s: model %.2f x %.2f x %.2f m vs Bill %.2f x %.2f x %.2f m (%+.1f%% %+.1f%% %+.1f%%)" % [key, ab.size.x, ab.size.y, ab.size.z, want.x, want.y, want.z, dev.x, dev.y, dev.z])
+		var tol: Vector2 = first.size_tolerance_pct
+		check(dev.x >= tol.x and dev.x <= tol.y and dev.y >= tol.x and dev.y <= tol.y and dev.z >= tol.x and dev.z <= tol.y,
+			"%s: model %.2f x %.2f x %.2f m vs Bill %.2f x %.2f x %.2f m (%+.1f%% %+.1f%% %+.1f%%, allowed %+.0f..%+.0f%%)" % [key, ab.size.x, ab.size.y, ab.size.z, want.x, want.y, want.z, dev.x, dev.y, dev.z, tol.x, tol.y])
 		check(absf(ab.position.y - first.model_offset.y) < 0.05 and absf(ab.get_center().x) < 0.5 and absf(ab.get_center().z) < 0.5,
 			"%s: model base at y %.2f (offset %.2f), footprint centred (%.2f, %.2f)" % [key, ab.position.y, first.model_offset.y, ab.get_center().x, ab.get_center().z])
+		_lod_checks(key, nodes)
+		if key.begins_with("rock_"):
+			_rock_collider_check(key, first, ab)
 	if per_scene.has("wall_segment_4m"):
 		var walls: Array = per_scene["wall_segment_4m"]
 		var meshes := {}
 		for n in walls:
 			if n.has_model:
-				for c in _all(n.get_node(^"Model")):
+				for c in _all(n.get_model_lod(0)):
 					if c is MeshInstance3D:
 						meshes[(c as MeshInstance3D).mesh.get_instance_id()] = true
 		check(walls.size() == 78 and meshes.size() == 1, "wall modules: %d instances (68 Bill + 10 fillers) share %d imported mesh resource(s)" % [walls.size(), meshes.size()])
 
 
-## AABB of a prop's loaded model in the prop's own frame (graybox excluded).
+## Hand-made LODs (BJORN's LOD pack): every listed LOD file is instanced on every instance; the
+## levels' visibility ranges are contiguous (each begin = the previous end, same fade margin, dithered
+## fade); each level's bounding box is within 5% of LOD0's (trees 15%) (same origin, scale, orientation); every
+## instance shares one imported mesh per level; levels marked as sharing materials draw with LOD0's
+## material (and were imported without their own textures).
+func _lod_checks(key: String, nodes: Array) -> void:
+	var first: CourtyardProp = nodes[0]
+	var want := 0
+	for p in first.model_lod_paths:
+		if ResourceLoader.exists(p):
+			want += 1
+	if first.model_lod_paths.size() == 0:
+		return
+	check(want == first.model_lod_paths.size(), "%s: all %d LOD files exist (%d found)" % [key, first.model_lod_paths.size(), want])
+	var lod0_ab := _level_aabb(first, 0)
+	var prev_end := -1.0
+	for level in want + 1:
+		var count := 0
+		var meshes := {}
+		var ranges := {}
+		for n in nodes:
+			var lod: Node3D = n.get_model_lod(level)
+			if lod == null:
+				continue
+			count += 1
+			for c in _all(lod):
+				if c is MeshInstance3D:
+					var mi := c as MeshInstance3D
+					meshes[mi.mesh.get_instance_id()] = true
+					ranges["%.2f/%.2f/%.2f/%.2f/%d" % [mi.visibility_range_begin, mi.visibility_range_begin_margin, mi.visibility_range_end, mi.visibility_range_end_margin, mi.visibility_range_fade_mode]] = true
+		check(count == nodes.size() and meshes.size() == 1 and ranges.size() == 1,
+			"%s LOD%d: on %d/%d instances, %d shared mesh resource(s), %d distinct range setting(s)" % [key, level, count, nodes.size(), meshes.size(), ranges.size()])
+		var lod: Node3D = first.get_model_lod(level)
+		if lod == null:
+			continue
+		var mi0: MeshInstance3D = null
+		for c in _all(lod):
+			if c is MeshInstance3D:
+				mi0 = c
+				break
+		if mi0 == null:
+			continue
+		if level > 0:
+			var ab := _level_aabb(first, level)
+			var d := (ab.size - lod0_ab.size) / lod0_ab.size * 100.0
+			# Trees: decimated foliage cards trim the canopy's outer tips; 15% (BJORN's lod3k pine is
+			# 12% shallower on its long axis, DEVIATIONS.md #27). Architecture: 5%.
+			var lt := 15.0 if key.begins_with("tree_") else 5.0
+			check(absf(d.x) <= lt and absf(d.y) <= lt and absf(d.z) <= lt and ab.get_center().distance_to(lod0_ab.get_center()) < 0.15,
+				"%s LOD%d: %.2f x %.2f x %.2f m vs LOD0 %.2f x %.2f x %.2f m (%+.1f%% %+.1f%% %+.1f%%), centre offset %.3f m" % [key, level, ab.size.x, ab.size.y, ab.size.z, lod0_ab.size.x, lod0_ab.size.y, lod0_ab.size.z, d.x, d.y, d.z, ab.get_center().distance_to(lod0_ab.get_center())])
+			check(absf(mi0.visibility_range_begin - prev_end) < 0.01 and mi0.visibility_range_begin_margin == first.model_lod_fade and mi0.visibility_range_fade_mode == GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF,
+				"%s LOD%d: drawn from %.1f m (previous level ends %.1f m), crossfade %.1f m" % [key, level, mi0.visibility_range_begin, prev_end, mi0.visibility_range_begin_margin])
+			var share: bool = first.model_lod_share_materials.size() >= level and first.model_lod_share_materials[level - 1] != 0
+			if share:
+				var src: MeshInstance3D = null
+				for c in _all(first.get_model_lod(0)):
+					if c is MeshInstance3D:
+						src = c
+						break
+				var own := mi0.mesh.surface_get_material(0) as BaseMaterial3D
+				check(src != null and mi0.get_active_material(0) == src.get_active_material(0) and (own == null or own.albedo_texture == null),
+					"%s LOD%d: drawn with LOD0's material (no texture of its own imported)" % [key, level])
+		prev_end = mi0.visibility_range_end
+
+
+func _level_aabb(prop: Node3D, level: int) -> AABB:
+	var out := AABB()
+	var first := true
+	var holder := prop.get_node(^"Model") as Node3D
+	for c in _all(prop.get_model_lod(level)):
+		if c is MeshInstance3D:
+			var mi := c as MeshInstance3D
+			var ab := (holder.global_transform.affine_inverse() * mi.global_transform) * mi.get_aabb()
+			out = ab if first else out.merge(ab)
+			first = false
+	return out
+
+
+## Batch 4 rocks: one box collider, top within 5% of the model's height, footprint inside the
+## model's bounding box (fitted to the stones; the low moss skirt is walk-through).
+func _rock_collider_check(key: String, prop: Node3D, ab: AABB) -> void:
+	var body := prop.get_node_or_null(^"Collision") as StaticBody3D
+	var shapes: Array = []
+	if body:
+		for c in body.get_children():
+			if c is CollisionShape3D:
+				shapes.append(c)
+	if shapes.size() != 1 or not (shapes[0].shape is BoxShape3D):
+		check(false, "%s: one box collider (%d shapes)" % [key, shapes.size()])
+		return
+	var cs: CollisionShape3D = shapes[0]
+	var sz := (cs.shape as BoxShape3D).size
+	var lo := cs.position - sz / 2.0
+	var hi := cs.position + sz / 2.0
+	check(absf(hi.y - ab.end.y) <= 0.05 * ab.size.y and absf(lo.y - ab.position.y) < 0.02 and lo.x >= ab.position.x - 0.01 and hi.x <= ab.end.x + 0.01 and lo.z >= ab.position.z - 0.01 and hi.z <= ab.end.z + 0.01,
+		"%s: box collider %.2f x %.2f x %.2f m (top %.2f) inside the model's %.2f x %.2f x %.2f m (top %.2f)" % [key, sz.x, sz.y, sz.z, hi.y, ab.size.x, ab.size.y, ab.size.z, ab.end.y])
+
+
+## AABB of a prop's loaded model (LOD0 only) in the prop's own frame (graybox excluded).
 func _holder_aabb(prop: Node3D) -> AABB:
 	var out := AABB()
 	var first := true
-	for c in _all(prop.get_node(^"Model")):
+	for c in _all(prop.get_model_lod(0)):
 		if c is MeshInstance3D:
 			var mi := c as MeshInstance3D
 			var ab := (prop.global_transform.affine_inverse() * mi.global_transform) * mi.get_aabb()
@@ -364,3 +468,39 @@ func _camera_clearance(arena: Node, space: PhysicsDirectSpaceState3D, spawns: Ar
 			if frac[0] >= 1.0:
 				full += 1
 		check(worst >= MIN_ARM, "camera clearance at %s: arm free >= %.1f m in all 8 directions (worst %.2f m, full %.1f m in %d/8)" % [key, MIN_ARM, worst, ARM, full])
+
+
+## Batch 4: rock_small_cluster now has a small box collider (Bill had none). Each cluster must be
+## walk-around: the navmesh points (reachable from the centre) on a 1.5 m ring around it are connected to each other by short
+## paths (< 10 m, i.e. around the rock, not a detour), outside the combat square.
+func _small_rock_checks(arena: Node, map: RID) -> void:
+	var centre := NavigationServer3D.map_get_closest_point(map, Vector3.ZERO)
+	for n in _all(arena):
+		if not (n is CourtyardProp and String(n.scene_file_path).get_file().begins_with("rock_small_cluster")):
+			continue
+		var c: Vector3 = (n as Node3D).global_position
+		var ring: Array = []
+		for i in 8:
+			var a := TAU * i / 8.0
+			var q := c + Vector3(cos(a), 0, sin(a)) * 1.5
+			var on := NavigationServer3D.map_get_closest_point(map, q)
+			if Vector2(on.x - q.x, on.z - q.z).length() < 0.3:
+				# Only points reachable from the courtyard (skips navmesh slivers in closed pockets,
+				# e.g. inside the SE turret's footprint next to ROCKS9).
+				var pc := NavigationServer3D.map_get_path(map, centre, on, true)
+				if pc.size() > 0 and pc[pc.size() - 1].distance_to(on) < 0.3:
+					ring.append(on)
+		var worst := 0.0
+		var unreached := 0
+		var ok := ring.size() >= 2
+		for i in range(1, ring.size()):
+			var path := NavigationServer3D.map_get_path(map, ring[0], ring[i], true)
+			var ln := 0.0
+			for k in range(1, path.size()):
+				ln += path[k].distance_to(path[k - 1])
+			if path.size() == 0 or path[path.size() - 1].distance_to(ring[i]) > 0.3:
+				ok = false
+				unreached += 1
+			worst = maxf(worst, ln)
+		ok = ok and worst < 10.0 and (absf(c.x) > 20.0 or absf(c.z) > 20.0)
+		check(ok, "%s at (%.1f, %.1f): walk-around, %d/8 ring points on the reachable navmesh (%d not reached), longest path round it %.1f m" % [n.name, c.x, c.z, ring.size(), unreached, worst])

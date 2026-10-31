@@ -18,6 +18,10 @@ size = Vector3(8.8, 2, 6.8)
 script = ExtResource("1")
 model_path = "res://environment/courtyard/assets/Courtyard/storehouse_kura/storehouse_kura.glb"
 authored_size = Vector3(8, 7, 6)
+model_lod_paths = PackedStringArray("res://environment/courtyard/assets/Courtyard/storehouse_kura/storehouse_kura_lod1.glb", "res://environment/courtyard/assets/Courtyard/storehouse_kura/storehouse_kura_lod2.glb")
+model_lod_distances = PackedFloat32Array(25, 50)
+model_lod_share_materials = PackedInt32Array(0, 0)
+model_lod_fade = 3
 
 [node name="Graybox" type="Node3D" parent="."]
 

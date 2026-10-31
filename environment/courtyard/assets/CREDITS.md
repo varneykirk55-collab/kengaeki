@@ -25,3 +25,11 @@ build box (not legal advice; some terms are still unverified there).
 | `Courtyard/tree_sakura` | Tencent Hunyuan 3D (AI-generated) | BJORN pipeline: 11,986 tris, 1024² textures, 5.81 × 6 × 5.22 m, origin at trunk base |
 | `Courtyard/tree_maple_momiji` | Tencent Hunyuan 3D (AI-generated) | BJORN pipeline: 10,000 tris, 1024² textures, 4.04 × 5 × 4.04 m, origin at trunk base |
 | `Courtyard/castle_keep_tenshu` | Tencent Hunyuan 3D (AI-generated) | BJORN pipeline: 20,000 tris, 1024² textures (JPEG albedo), 30 × 28 × 22 m, backdrop only |
+| `Courtyard/tree_*/tree_*_lod3k.glb` (pine, sakura, maple) | Tencent Hunyuan 3D (AI-generated) | BJORN pipeline LOD pack: 4,000 / 3,491 / 3,986 tris, drawn with LOD0's textures (none committed) |
+| `Courtyard/wall_segment_4m` (`_lod1`, `_lod2`) | Tencent Hunyuan 3D (AI-generated) | BJORN pipeline LOD pack: 5,000 / 404 tris, rebaked textures, same 4.00 m tiling ends |
+| `Courtyard/corner_turret` (`_lod1`, `_lod2`) | Tencent Hunyuan 3D (AI-generated) | BJORN pipeline LOD pack: 5,400 tris (LOD0's textures) / 1,997 tris (rebaked textures) |
+| `Courtyard/barracks_nagaya` (`_lod1`, `_lod2`) | Tencent Hunyuan 3D (AI-generated) | BJORN pipeline LOD pack: 5,379 / 1,978 tris, rebaked textures |
+| `Courtyard/storehouse_kura` (`_lod1`, `_lod2`) | Tencent Hunyuan 3D (AI-generated) | BJORN pipeline LOD pack: 2,700 / 1,000 tris, rebaked textures |
+| `Courtyard/bridge_stone_slab` (albedo v2) | Tencent Hunyuan 3D (AI-generated) | BJORN pipeline: albedo regraded darker (mean RGB 150/150/139 → 112/108/95), same mesh |
+| `Courtyard/rock_formation_large` (+ `_b`) | Tencent Hunyuan 3D (AI-generated) | BJORN pipeline batch 4: 4,000 tris each, 2.78 × 1.98 × 2.70 m / 3.40 × 2.15 × 2.21 m (`_b`, used at 0.9) |
+| `Courtyard/rock_small_cluster` (+ `_b`) | Tencent Hunyuan 3D (AI-generated) | BJORN pipeline batch 4: 1,000 tris each, used at 0.9 scale |

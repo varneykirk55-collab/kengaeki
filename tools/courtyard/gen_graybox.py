@@ -82,6 +82,8 @@ class Scene:
         self.subs = []     # text blocks
         self.nodes = []    # text blocks
         self.model_path = model_path
+        self.asset = name          # blueprint asset (differs from name for variant prefabs)
+        self.model_scale = 1.0
         self.notes = notes
         self.sid = 0
         if script:
@@ -155,9 +157,19 @@ class Scene:
                 props.append(("model_offset", vec(fit["offset"])))
             if "scale_xyz" in fit:
                 props.append(("model_scale_xyz", vec(fit["scale_xyz"])))
+            if getattr(self, "model_scale", 1.0) != 1.0:
+                props.append(("model_scale", fmt(self.model_scale)))
             if getattr(self, "authored_size", None):
                 props.append(("authored_size", vec(self.authored_size)))
-            rnd = MODEL_RENDER.get(self.name, {})
+            if getattr(self, "asset", self.name) in SIZE_TOL:
+                props.append(("size_tolerance_pct", "Vector2(%s, %s)" % tuple(fmt(v) for v in SIZE_TOL[self.asset])))
+            lods = resolve_lods(self.name) if self.model_path and not self.model_path.endswith("graybox") else []
+            if lods and os.path.isfile(os.path.join(ROOT, self.model_path[len("res://"):])):
+                props.append(("model_lod_paths", "PackedStringArray(%s)" % ", ".join('"%s"' % p for p, _d, _s in lods)))
+                props.append(("model_lod_distances", "PackedFloat32Array(%s)" % ", ".join(fmt(d) for _p, d, _s in lods)))
+                props.append(("model_lod_share_materials", "PackedInt32Array(%s)" % ", ".join("1" if sh else "0" for _p, _d, sh in lods)))
+                props.append(("model_lod_fade", fmt(LOD_FADE.get(self.name, LOD_FADE_DEFAULT))))
+            rnd = MODEL_RENDER.get(getattr(self, "asset", self.name), {})
             if "lod_bias" in rnd:
                 props.append(("model_lod_bias", "%g" % rnd["lod_bias"]))
             if "vis_end" in rnd:
@@ -214,6 +226,11 @@ MODEL_FIT = {
     # deck is flush with the banks (+-3 mm over its walkable length) and the supports end 0.094 m
     # under the water surface (-0.30).
     "bridge_stone_slab": dict(offset=(0, -0.394, 0)),
+    # LOD pack (Oct 30, 9:35 PM): per-axis node scale on the tree models (BJORN's suggestion,
+    # confirmed by Kirk). Pine: canopy depth 3.58 -> 4.66 m (Bill 6 x 7 x 6). Maple: 4.04 x 5 x 4.04
+    # -> 5.0 x 5 x 5.0 (Bill 5 x 5 x 5). The trunk colliders follow (TREE_TRUNK). DEVIATIONS.md #26.
+    "tree_pine_kuromatsu": dict(scale_xyz=(1, 1, 1.3)),
+    "tree_maple_momiji": dict(scale_xyz=(1.237, 1, 1.238)),
 }
 
 # Render cost settings for the imported models (CourtyardProp exports). Every BJORN GLB is
@@ -223,15 +240,55 @@ MODEL_FIT = {
 #   5.4k-triangle LOD sooner; vis_end culls small props beyond the given distance (m), with a
 #   hysteresis margin. Measured with tools/courtyard/render_views.gd (INTEGRATION_PLAN.md).
 MODEL_RENDER = {
-    "wall_segment_4m": dict(lod_bias=0.3),
+    # LOD pack: the walls now switch to BJORN's hand-made lod1/lod2 (MODEL_LODS), so the 0.3 bias
+    # on Godot's generated LOD (batch 2) is dropped; LOD0 is only drawn within 20 m.
     "stone_lantern_toro_2m": dict(vis_end=55.0, vis_margin=5.0),
-    # Trees (batch 3): Godot's generated LOD saves only ~3% on BJORN's trees even at lod_bias 0.05
-    # (detached foliage cards), so no bias; cull beyond 100 m (+10 m hysteresis). Inside the walls
-    # that only hits tree pairs at opposite corners (fog ~33% there); none of the six views.
-    "tree_pine_kuromatsu": dict(vis_end=100.0, vis_margin=10.0),
-    "tree_sakura": dict(vis_end=100.0, vis_margin=10.0),
-    "tree_maple_momiji": dict(vis_end=100.0, vis_margin=10.0),
+    # Trees: batch 3 culled them beyond 100 m. With the 4k lod3k beyond 25 m they are drawn at any
+    # distance again (no pop-out at the far corners).
+    # Small rock clusters (batch 4): 1k-triangle decoration, culled beyond 45 m (+5 m hysteresis).
+    "rock_small_cluster": dict(vis_end=45.0, vis_margin=5.0),
 }
+
+# Hand-made LODs from BJORN's LOD pack (Oct 30, 9:35 PM): per blueprint asset, the MANIFEST variant,
+# the camera distance (m, to the mesh AABB centre) where it takes over, and whether it is drawn with
+# LOD0's materials (same UVs; its embedded textures are discarded on import by vram_textures.py). The
+# switch is a dithered crossfade LOD_FADE m wide (visibility_range margins, FADE_SELF). Distances for
+# the 80 m compound and the third-person camera (4.2 m arm): LOD0 covers the combat area around the
+# player; lod1 the middle distance; lod2 the far side of the compound and the long views.
+MODEL_LODS = {
+    "wall_segment_4m": [("lod1", 20.0, False), ("lod2", 45.0, False)],
+    "corner_turret": [("lod1", 30.0, True), ("lod2", 60.0, False)],
+    "barracks_nagaya": [("lod1", 30.0, False), ("lod2", 55.0, False)],
+    "storehouse_kura": [("lod1", 25.0, False), ("lod2", 50.0, False)],
+    "tree_pine_kuromatsu": [("lod3k", 25.0, True)],
+    "tree_sakura": [("lod3k", 25.0, True)],
+    "tree_maple_momiji": [("lod3k", 25.0, True)],
+}
+LOD_FADE = {"wall_segment_4m": 2.0}   # default 3 m
+LOD_FADE_DEFAULT = 3.0
+
+# Second variants delivered as separate GLBs (batch 4 rocks): each gets its own prefab
+# (<asset>_<variant>.tscn) and alternates with the main model over Bill's instances (INSTANCE_VARIANT).
+# scale: uniform node scale on the model (BJORN: 0.9 for rock_formation_large_b, 0.85-1.0 for the
+# clusters). collider: one box (centre, size) in prefab space, measured from the model's vertices
+# above y 0.3 m (the moss skirt below that is walk-through) at that scale, full model height.
+VARIANTS = {
+    "rock_formation_large": {
+        None: dict(scale=1.0, collider=((0.05, 0.99, -0.005), (2.08, 1.98, 1.87))),
+        "b": dict(scale=0.9, collider=((-0.014, 0.969, 0.176), (2.51, 1.938, 1.13))),
+    },
+    "rock_small_cluster": {
+        None: dict(scale=0.9, collider=((0.0, 0.217, 0.0), (0.597, 0.435, 0.575))),
+        "b": dict(scale=0.9, collider=((-0.009, 0.248, 0.013), (0.504, 0.496, 0.495))),
+    },
+}
+# Bill's rocks, alternating main / b (every second instance in blueprint order).
+INSTANCE_VARIANT = {"ROCKL2": "b", "ROCKL4": "b",
+                    "ROCKS2": "b", "ROCKS4": "b", "ROCKS6": "b", "ROCKS8": "b", "ROCKS10": "b"}
+# Size-check tolerance (% per axis, min..max) where +-10% does not fit; checked by sync_assets.py and
+# check_courtyard.gd (size_tolerance_pct export). Rocks are natural shapes: only "no more than 10%
+# (clusters: 25%) larger than Bill's box" matters for the layout. DEVIATIONS.md #28.
+SIZE_TOL = {"rock_formation_large": (-25.0, 10.0), "rock_small_cluster": (-40.0, 25.0)}
 
 # Authored-size overrides used by the 10% checks (sync_assets.py, check_courtyard.gd) where the
 # delivered asset legitimately differs from layout_data.py. Documented in DEVIATIONS.md.
@@ -250,13 +307,18 @@ AUTHORED_SIZE = {
 HEIGHT_FIT = {"tree_pine_kuromatsu", "tree_sakura", "tree_maple_momiji"}
 # Trunk-only collider per species (model space: x, z of the cylinder axis, radius, height), from
 # BJORN's batch 3 notes. Bill: pine r0.35 h3, maple/sakura r0.3 h2.5. Canopies do not collide.
-TREE_TRUNK = {"tree_pine_kuromatsu": (-0.3, 0.15, 0.45, 2.5),
+# LOD pack: pine z x1.3 moves the trunk axis to z 0.195; maple x/z x1.237 widens the trunk to r 0.25.
+TREE_TRUNK = {"tree_pine_kuromatsu": (-0.3, 0.195, 0.45, 2.5),
               "tree_sakura": (0.0, 0.0, 0.4, 2.3),
-              "tree_maple_momiji": (0.0, 0.0, 0.2, 2.0)}
+              "tree_maple_momiji": (0.0, 0.0, 0.25, 2.0)}
 # Yaw overrides (degrees) where Bill's yaw makes a canopy clip a wall or turret; the trunk stays on
-# Bill's position. Found with tools/courtyard/tree_fit.py (>= 0.25 m clearance). DEVIATIONS.md #23.
-YAW_OVERRIDE = {"PINE3": 88,    # Bill 134: canopy 0.54 m into the east wall (WE11)
-                "PINE6": 312}   # Bill 335: canopy 0.29 m into the NE turret (TNE)
+# Bill's position. Found with tools/courtyard/tree_fit.py. DEVIATIONS.md #23, #26.
+# Batch 3 (uniform pine): 88 / 312 with >= 0.25 m clearance. LOD pack: the pine's z x1.3 node scale
+# makes its canopy 4.66 m deep; at 88 / 312 it clipped WE11 by 0.01 m and TNE by 0.04 m. The yaws
+# below are the best clearances over all 360 degrees (PINE3 0.10 m, PINE6 0.05 m against the
+# conservative eave-inclusive AABBs).
+YAW_OVERRIDE = {"PINE3": 92,    # Bill 134: canopy 0.54 m into the east wall (WE11)
+                "PINE6": 304}   # Bill 335: canopy 0.29 m into the NE turret (TNE)
 POND_X, POND_HZ = (24.5, 35.5), 5.0   # pond water x range and half depth in z (water box (30,-0.3,0), 11 x 10)
 
 
@@ -271,6 +333,26 @@ def resolve_model_path(asset):
                 return "res://" + rel
     c, n = asset_candidates(asset)[0]
     return asset_path(c, n)
+
+def resolve_variant_path(asset, variant):
+    """res:// path of a MANIFEST variant GLB (<name>_<variant>.glb next to the main model) if it is
+    in the repo, else None (never written into a scene)."""
+    for c, n in asset_candidates(asset):
+        rel = "%s/assets/%s/%s/%s_%s.glb" % (BASE, c, n, n, variant)
+        if os.path.isfile(os.path.join(ROOT, rel)):
+            return "res://" + rel
+    return None
+
+
+def resolve_lods(asset):
+    """[(res path, distance, share)] for the LOD files of this asset that are in the repo."""
+    out = []
+    for v, d, share in MODEL_LODS.get(asset, []):
+        p = resolve_variant_path(asset, v)
+        if p:
+            out.append((p, d, share))
+    return out
+
 
 # ---------------------------------------------------------------------------------------
 # Blueprint (Agent 1 / Bill). Read from Bill's file; see BLUEPRINT_SRC.
@@ -452,16 +534,36 @@ def load_blueprint():
     return type("Layout", (), ns)
 
 
-def prefab_path(asset):
+def prefab_path(asset, variant=None):
     sub = "modules" if asset in ARCH else "props"
-    return "%s/%s/%s.tscn" % (RES, sub, asset)
+    return "%s/%s/%s%s.tscn" % (RES, sub, asset, "_" + variant if variant else "")
 
 
-def build_prefab(asset, size):
-    s = Scene(asset, resolve_model_path(asset))
+def instance_prefab(oid, asset):
+    """Prefab for one blueprint instance: the variant prefab if INSTANCE_VARIANT picks one and its
+    GLB is in the repo, else the asset's main prefab."""
+    v = INSTANCE_VARIANT.get(oid)
+    if v and resolve_variant_path(asset, v):
+        return prefab_path(asset, v)
+    return prefab_path(asset)
+
+
+def build_prefab(asset, size, variant=None):
+    if variant:
+        vp = resolve_variant_path(asset, variant)
+        if not vp:
+            return
+        s = Scene(asset + "_" + variant, vp)
+    else:
+        s = Scene(asset, resolve_model_path(asset))
+    s.asset = asset
+    s.model_scale = VARIANTS.get(asset, {}).get(variant, {}).get("scale", 1.0)
     s.authored_size = tuple(AUTHORED_SIZE.get(asset, size))
     sx, sy, sz = size
-    s.begin(collision=asset not in ARCH and asset not in ("shrub_azalea", "rock_small_cluster"))
+    # rock_small_cluster: Bill has no collider (MultiMesh decoration); batch 4 adds a fitted box once
+    # BJORN's model is in (Kirk, Oct 30 9:35 PM: simple collision on the rocks). DEVIATIONS.md #28.
+    cluster_box = asset == "rock_small_cluster" and os.path.isfile(os.path.join(ROOT, s.model_path[len("res://"):]))
+    s.begin(collision=asset not in ARCH and (asset not in ("shrub_azalea", "rock_small_cluster") or cluster_box))
     if asset == "wall_segment_4m":
         s.box("Base", (0, 0.6, 0), (sx, 1.2, sz + 0.1), "stone")
         s.box("Plaster", (0, 2.8, 0), (sx, 3.2, sz), "plaster")
@@ -520,13 +622,18 @@ def build_prefab(asset, size):
         s.sphere("Body", (0, sy / 2, 0), sx / 2, sy, "foliage")
     elif asset.startswith("rock_"):
         s.sphere("Body", (0, sy / 2, 0), max(sx, sz) / 2, sy, "stone")
-        if asset == "rock_formation_large":
+        var = VARIANTS.get(asset, {}).get(variant)
+        model_in_repo = os.path.isfile(os.path.join(ROOT, s.model_path[len("res://"):]))
+        if var and model_in_repo:
+            # Batch 4: one box fitted to BJORN's model (VARIANTS); Bill's box was for the graybox.
+            s.col_box("Shape", *var["collider"])
+        elif asset == "rock_formation_large":
             s.col_box("Shape", (0, 0.9, 0), (2.6, 1.8, 2.1))
         elif asset == "rock_medium":
             s.col_box("Shape", (0, 0.45, 0), (1.3, 0.9, 1.0))
     else:  # unknown blueprint asset: authored-size box, no collision
         s.box("Box", (0, sy / 2, 0), size, "stone")
-    s.save(prefab_path(asset)[len(RES) + 1:])
+    s.save(prefab_path(asset, variant)[len(RES) + 1:])
 
 
 # ---------------------------------------------------------------------------------------
@@ -623,7 +730,7 @@ def courtyard_arena(L):
         if grp not in groups_made:
             s.node(grp, "Node3D", "Collision/Props"); groups_made.add(grp)
         yaw = YAW_OVERRIDE.get(oid, yaw)
-        s.node(oid, None, "Collision/Props/" + grp, [("transform", xform((x, y, z), ("y", yaw)))], instance=prefab_path(asset))
+        s.node(oid, None, "Collision/Props/" + grp, [("transform", xform((x, y, z), ("y", yaw)))], instance=instance_prefab(oid, asset))
 
     # ---- Visual: no colliders ----
     s.node("Visual", "Node3D", ".")
@@ -700,9 +807,10 @@ def prefab_gallery(L):
         seen.setdefault(o[1], o[6])
     x = 0.0
     for asset, size in seen.items():
-        x += size[0] / 2 + 2
-        s.node(asset, None, ".", [("transform", xform((x, 0, 0)))], instance=prefab_path(asset))
-        x += size[0] / 2
+        for v in [None] + [k for k in VARIANTS.get(asset, {}) if k and resolve_variant_path(asset, k)]:
+            x += size[0] / 2 + 2
+            s.node(asset + ("_" + v if v else ""), None, ".", [("transform", xform((x, 0, 0)))], instance=prefab_path(asset, v))
+            x += size[0] / 2
     s.node("Sun", "DirectionalLight3D", ".", [("rotation", "Vector3(-0.85, 0.65, 0)"), ("shadow_enabled", "true")])
     s.save("scenes/prefab_gallery.tscn")
 
@@ -712,6 +820,9 @@ if __name__ == "__main__":
     gen_materials()
     for asset in sorted({o[1] for o in L.objs}):
         build_prefab(asset, next(o[6] for o in L.objs if o[1] == asset))
+        for v in VARIANTS.get(asset, {}):
+            if v:
+                build_prefab(asset, next(o[6] for o in L.objs if o[1] == asset), v)
     courtyard_arena(L)
     prefab_gallery(L)
     print("graybox generated from %s (sha256 %s): %d objects, %d prefabs" % (BLUEPRINT_SRC, BLUEPRINT_SHA[:12], len(L.objs), len({o[1] for o in L.objs})))
