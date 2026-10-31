@@ -207,8 +207,8 @@ func _blueprint_checks(arena: Node, map: RID, space: PhysicsDirectSpaceState3D, 
 	check(trees == 14, "14 trees placed (%d)" % trees)
 	# Gate closed (blocking); keep has no collision.
 	var gate := space.intersect_ray(PhysicsRayQueryParameters3D.create(Vector3(0, 1, 26), Vector3(0, 1, 42), 1))
-	# Collider fitted to BJORN's gate base (courtyard face at z = 34 - 3.32 = 30.68; DEVIATIONS #20).
-	check(not gate.is_empty() and absf(gate.position.z - 30.68) < 0.15, "main gate closed: blocking collider at z %s" % (gate.position.z if not gate.is_empty() else "none"))
+	# Collider fitted to BJORN's wide gate base (courtyard face at z = 34 - 3.84 = 30.16; DEVIATIONS #20, #31).
+	check(not gate.is_empty() and absf(gate.position.z - 30.16) < 0.15, "main gate closed: blocking collider at z %s" % (gate.position.z if not gate.is_empty() else "none"))
 	var kq := PhysicsShapeQueryParameters3D.new()
 	var kb := BoxShape3D.new()
 	kb.size = Vector3(30, 28, 22)
@@ -240,6 +240,7 @@ func _blueprint_checks(arena: Node, map: RID, space: PhysicsDirectSpaceState3D, 
 	check(lanterns == 10 and with_model == lanterns, "all %d lanterns use the real GLB (%d with model)" % [lanterns, with_model])
 	_model_checks(arena)
 	_small_rock_checks(arena, map)
+	_batch4_final_checks(arena, map, space)
 	_camera_clearance(arena, space, spawns)
 	# Routes that must exist.
 	for pair in [["pond north -> south", Vector3(31, 0, -9), Vector3(31, 0, 9)],
@@ -362,9 +363,10 @@ func _lod_checks(key: String, nodes: Array) -> void:
 		if level > 0:
 			var ab := _level_aabb(first, level)
 			var d := (ab.size - lod0_ab.size) / lod0_ab.size * 100.0
-			# Trees: decimated foliage cards trim the canopy's outer tips; 15% (BJORN's lod3k pine is
-			# 12% shallower on its long axis, DEVIATIONS.md #27). Architecture: 5%.
-			var lt := 15.0 if key.begins_with("tree_") else 5.0
+			# Trees: decimated foliage cards trim the canopy's outer tips (maple -3.7%, sakura -1.7%);
+			# the reworked pine lod3k now matches LOD0's bounds (was 12% shallower, DEVIATIONS.md #27),
+			# so trees are back to 5% like the architecture (batch 3: 15%).
+			var lt := 5.0
 			check(absf(d.x) <= lt and absf(d.y) <= lt and absf(d.z) <= lt and ab.get_center().distance_to(lod0_ab.get_center()) < 0.15,
 				"%s LOD%d: %.2f x %.2f x %.2f m vs LOD0 %.2f x %.2f x %.2f m (%+.1f%% %+.1f%% %+.1f%%), centre offset %.3f m" % [key, level, ab.size.x, ab.size.y, ab.size.z, lod0_ab.size.x, lod0_ab.size.y, lod0_ab.size.z, d.x, d.y, d.z, ab.get_center().distance_to(lod0_ab.get_center())])
 			check(absf(mi0.visibility_range_begin - prev_end) < 0.01 and mi0.visibility_range_begin_margin == first.model_lod_fade and mi0.visibility_range_fade_mode == GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF,
@@ -376,9 +378,14 @@ func _lod_checks(key: String, nodes: Array) -> void:
 					if c is MeshInstance3D:
 						src = c
 						break
+				# BJORN's reworked LODs (Oct 30, 10:45 PM) reference LOD0's texture files by glTF URI, so
+				# the imported material may carry LOD0's texture: allowed, as long as it is LOD0's file.
 				var own := mi0.mesh.surface_get_material(0) as BaseMaterial3D
-				check(src != null and mi0.get_active_material(0) == src.get_active_material(0) and (own == null or own.albedo_texture == null),
-					"%s LOD%d: drawn with LOD0's material (no texture of its own imported)" % [key, level])
+				var lod0_mat := src.get_active_material(0) as BaseMaterial3D if src else null
+				var own_tex := "" if own == null or own.albedo_texture == null else own.albedo_texture.resource_path
+				var lod0_tex := "" if lod0_mat == null or lod0_mat.albedo_texture == null else lod0_mat.albedo_texture.resource_path
+				check(src != null and mi0.get_active_material(0) == src.get_active_material(0) and (own_tex == "" or own_tex == lod0_tex),
+					"%s LOD%d: drawn with LOD0's material (imported albedo: %s; LOD0's: %s)" % [key, level, own_tex.get_file() if own_tex != "" else "none", lod0_tex.get_file()])
 		prev_end = mi0.visibility_range_end
 
 
@@ -504,3 +511,101 @@ func _small_rock_checks(arena: Node, map: RID) -> void:
 			worst = maxf(worst, ln)
 		ok = ok and worst < 10.0 and (absf(c.x) > 20.0 or absf(c.z) > 20.0)
 		check(ok, "%s at (%.1f, %.1f): walk-around, %d/8 ring points on the reachable navmesh (%d not reached), longest path round it %.1f m" % [n.name, c.x, c.z, ring.size(), unreached, worst])
+
+
+## Batch 4 final (pond stones, shrubs, wide gate, rock_medium). DEVIATIONS.md #29-#32.
+func _batch4_final_checks(arena: Node, map: RID, space: PhysicsDirectSpaceState3D) -> void:
+	# Pond stones: 7 placed, each with the real model standing in the water (bottom below the water
+	# surface at -0.30, top above the bank at 0: no face coplanar with the water or the ground).
+	var stones: Array = []
+	for n in _all(arena):
+		if n is CourtyardProp and String(n.scene_file_path).get_file().begins_with("pond_edge_stones_2m"):
+			stones.append(n)
+	var b_count := 0
+	for n in stones:
+		if String(n.scene_file_path).ends_with("_b.tscn"):
+			b_count += 1
+		var ab := _holder_aabb(n)
+		var top := ab.end.y + (n as Node3D).global_position.y
+		var bot := ab.position.y + (n as Node3D).global_position.y
+		check(n.has_model and bot < -0.31 and top > 0.05,
+			"%s: model in the water and above the bank (y %.2f..%.2f; water -0.30, bank 0.00; no coplanar faces)" % [n.name, bot, top])
+	check(stones.size() == 7 and b_count == 3, "pond stones: %d placed (%d use the _b file)" % [stones.size(), b_count])
+	# One box collider per stone (Collision/PondStones), clear of the bridges' colliders, the paths
+	# and the bridge ends; no navmesh on top of a stone.
+	var body := arena.get_node_or_null(^"Collision/PondStones") as StaticBody3D
+	var boxes: Array = []
+	if body:
+		for c in body.get_children():
+			if c is CollisionShape3D and (c as CollisionShape3D).shape is BoxShape3D:
+				boxes.append(c)
+	check(boxes.size() == 7, "pond stones: %d box colliders (Collision/PondStones)" % boxes.size())
+	var bridges := arena.get_node_or_null(^"Collision/Bridges") as StaticBody3D
+	for c in boxes:
+		var cs := c as CollisionShape3D
+		var q := PhysicsShapeQueryParameters3D.new()
+		q.shape = cs.shape
+		q.transform = cs.global_transform
+		q.collision_mask = 1
+		q.exclude = [body.get_rid()]
+		var hit_bridge := 0
+		for h in space.intersect_shape(q, 32):
+			if h.collider == bridges:
+				hit_bridge += 1
+		var top := cs.global_position + Vector3.UP * (cs.shape as BoxShape3D).size.y / 2.0
+		var cp := NavigationServer3D.map_get_closest_point(map, top)
+		var flat := Vector2(cp.x - top.x, cp.z - top.z).length()
+		check(hit_bridge == 0 and flat > 0.3,
+			"%s collider: clear of the bridge colliders (%d overlaps), no navmesh on the stone (nearest %.2f m away)" % [cs.name, hit_bridge, flat])
+	# Bridge ends and the bridge spur paths beyond the pond edge (P5 x 31 w 2.4, P6 x 26 w 2.0):
+	# no pond stone collider in their footprint.
+	for item in [["slab bridge ends + path P6", Vector3(26, 0.5, 0), Vector3(2.0, 1.0, 20.0)],
+			["arch bridge ends + path P5", Vector3(31, 0.5, 0), Vector3(2.4, 1.0, 20.0)]]:
+		for zc in [-7.5, 7.5]:
+			var q := PhysicsShapeQueryParameters3D.new()
+			var bx := BoxShape3D.new()
+			bx.size = Vector3(item[2].x, 1.0, 5.0)
+			q.shape = bx
+			q.transform = Transform3D(Basis(), Vector3(item[1].x, 0.5, zc))
+			q.collision_mask = 1
+			var n_st := 0
+			for h in space.intersect_shape(q, 32):
+				if h.collider == body:
+					n_st += 1
+			check(n_st == 0, "%s (z %.1f..%.1f): no pond stone collider (%d)" % [item[0], zc - 2.5, zc + 2.5, n_st])
+	# Shrubs: 12 placed, real model, Bill's "no collision", faded beyond ~45 m.
+	var shrubs := 0
+	var sb := 0
+	var shrub_cols := 0
+	var vis_ok := true
+	for n in _all(arena):
+		if n is CourtyardProp and String(n.scene_file_path).get_file().begins_with("shrub_azalea"):
+			shrubs += 1
+			if String(n.scene_file_path).ends_with("_b.tscn"):
+				sb += 1
+			for c in _all(n):
+				if c is CollisionShape3D:
+					shrub_cols += 1
+				if c is MeshInstance3D and (c as MeshInstance3D).get_parent() != n.get_node(^"Graybox"):
+					vis_ok = vis_ok and absf((c as MeshInstance3D).visibility_range_end - 45.0) < 0.01
+			check(n.has_model, "%s: real shrub model shown" % n.name)
+	check(shrubs == 12 and sb == 6 and shrub_cols == 0 and vis_ok,
+		"shrubs: %d placed (%d _b), %d collision shapes (Bill: none), faded beyond 45 m: %s" % [shrubs, sb, shrub_cols, vis_ok])
+	# rock_medium: 8 placed, outside the combat square (collider fit is checked in _model_checks).
+	var rm := 0
+	var rm_out := true
+	for n in _all(arena):
+		if n is CourtyardProp and String(n.scene_file_path).get_file() == "rock_medium.tscn":
+			rm += 1
+			var p := (n as Node3D).global_position
+			rm_out = rm_out and (absf(p.x) > 20.0 or absf(p.z) > 20.0) and n.has_model
+	check(rm == 8 and rm_out, "rock_medium: %d boulders with the real model, all outside the combat square" % rm)
+	# Wide gate: real model, gate-side fillers end inside its shell (x 6.0 from the centre).
+	var gate := arena.find_child("GATE", true, false) as CourtyardProp
+	check(gate != null and gate.has_model and gate.model_path.ends_with("main_gate_yaguramon_wide.glb"), "gate uses main_gate_yaguramon_wide.glb")
+	for nm in ["WS07_FillB", "WS08_FillA"]:
+		var f := arena.find_child(nm, true, false) as Node3D
+		check(f != null, "gate filler %s present" % nm)
+		if f:
+			var inner := absf(f.global_position.x) - 2.0 * absf(f.scale.x)
+			check(absf(inner - 6.0) < 0.02 and f.global_position.z == 34.0, "%s: gate filler from the wall end (x 8) to x %.2f (inside the gate shell)" % [nm, inner])

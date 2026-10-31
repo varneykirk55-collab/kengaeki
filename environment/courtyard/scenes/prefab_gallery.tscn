@@ -1,4 +1,4 @@
-[gd_scene load_steps=21 format=3]
+[gd_scene load_steps=23 format=3]
 
 [ext_resource type="PackedScene" path="res://environment/courtyard/modules/wall_segment_4m.tscn" id="1"]
 [ext_resource type="PackedScene" path="res://environment/courtyard/modules/corner_turret.tscn" id="2"]
@@ -19,7 +19,9 @@
 [ext_resource type="PackedScene" path="res://environment/courtyard/props/rock_small_cluster.tscn" id="17"]
 [ext_resource type="PackedScene" path="res://environment/courtyard/props/rock_small_cluster_b.tscn" id="18"]
 [ext_resource type="PackedScene" path="res://environment/courtyard/props/shrub_azalea.tscn" id="19"]
-[ext_resource type="PackedScene" path="res://environment/courtyard/modules/pond_edge_stones_2m.tscn" id="20"]
+[ext_resource type="PackedScene" path="res://environment/courtyard/props/shrub_azalea_b.tscn" id="20"]
+[ext_resource type="PackedScene" path="res://environment/courtyard/modules/pond_edge_stones_2m.tscn" id="21"]
+[ext_resource type="PackedScene" path="res://environment/courtyard/modules/pond_edge_stones_2m_b.tscn" id="22"]
 
 
 [node name="PrefabGallery" type="Node3D"]
@@ -81,8 +83,14 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 200.53, 0, 0)
 [node name="shrub_azalea" parent="." instance=ExtResource("19")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 203.73, 0, 0)
 
-[node name="pond_edge_stones_2m" parent="." instance=ExtResource("20")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 207.53, 0, 0)
+[node name="shrub_azalea_b" parent="." instance=ExtResource("20")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 207.33, 0, 0)
+
+[node name="pond_edge_stones_2m" parent="." instance=ExtResource("21")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 211.13, 0, 0)
+
+[node name="pond_edge_stones_2m_b" parent="." instance=ExtResource("22")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 215.13, 0, 0)
 
 [node name="Sun" type="DirectionalLight3D" parent="."]
 rotation = Vector3(-0.85, 0.65, 0)

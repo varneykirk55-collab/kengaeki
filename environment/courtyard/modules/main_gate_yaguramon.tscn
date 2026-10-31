@@ -23,7 +23,7 @@ size = Vector3(17, 2, 9)
 
 [node name="main_gate_yaguramon" type="Node3D"]
 script = ExtResource("1")
-model_path = "res://environment/courtyard/assets/Courtyard/main_gate_yaguramon/main_gate_yaguramon.glb"
+model_path = "res://environment/courtyard/assets/Courtyard/main_gate_yaguramon/main_gate_yaguramon_wide.glb"
 authored_size = Vector3(16, 10, 8)
 
 [node name="Graybox" type="Node3D" parent="."]

@@ -20,7 +20,7 @@ model_path = "res://environment/courtyard/assets/Courtyard/wall_segment_4m/wall_
 authored_size = Vector3(4, 5, 1.6)
 model_lod_paths = PackedStringArray("res://environment/courtyard/assets/Courtyard/wall_segment_4m/wall_segment_4m_lod1.glb", "res://environment/courtyard/assets/Courtyard/wall_segment_4m/wall_segment_4m_lod2.glb")
 model_lod_distances = PackedFloat32Array(20, 45)
-model_lod_share_materials = PackedInt32Array(0, 0)
+model_lod_share_materials = PackedInt32Array(1, 0)
 model_lod_fade = 2
 
 [node name="Graybox" type="Node3D" parent="."]

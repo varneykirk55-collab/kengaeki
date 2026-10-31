@@ -8,8 +8,11 @@ size = Vector3(2, 0.3, 0.8)
 
 [node name="pond_edge_stones_2m" type="Node3D"]
 script = ExtResource("1")
-model_path = "res://environment/courtyard/assets/Rocks/pond_edge_stones_2m/pond_edge_stones_2m.glb"
+model_path = "res://environment/courtyard/assets/Courtyard/pond_edge_stones_2m/pond_edge_stones_2m.glb"
+model_offset = Vector3(0, -0.32, 0)
+model_scale_xyz = Vector3(1, 2, 1.4)
 authored_size = Vector3(2, 0.5, 0.8)
+size_tolerance_pct = Vector2(-25, 10)
 
 [node name="Graybox" type="Node3D" parent="."]
 

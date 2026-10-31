@@ -152,7 +152,8 @@ class Scene:
             props.append(("script", 'ExtResource("1")'))
             if self.model_path:
                 props.append(("model_path", '"%s"' % self.model_path))
-            fit = MODEL_FIT.get(self.name, {})
+            # Variant prefabs (<asset>_<variant>) use their own MODEL_FIT entry if any, else the asset's.
+            fit = MODEL_FIT.get(self.name, MODEL_FIT.get(getattr(self, "asset", self.name), {}))
             if "offset" in fit:
                 props.append(("model_offset", vec(fit["offset"])))
             if "scale_xyz" in fit:
@@ -213,7 +214,10 @@ MODEL_VARIANT = {"stone_lantern_toro_2m": "stone_lantern_toro_lod8k",
                  # Batch 3: the deck2m variant's deck top is 2.0 m wide, matching Bill's deck collider
                  # and the rails at x +-1.075. Only the variant is copied (sync_assets.py --variant
                  # deck2m); the main bridge_stone_slab.glb (2.33 m deck) is not in the repo.
-                 "bridge_stone_slab": "bridge_stone_slab_deck2m"}
+                 "bridge_stone_slab": "bridge_stone_slab_deck2m",
+                 # Batch 4 (final): the wide gate (15.34 m, Bill 16 m) replaces the 14.67 m gate. Only the
+                 # variant is in the repo; the old main_gate_yaguramon.glb was removed (DEVIATIONS.md #31).
+                 "main_gate_yaguramon": "main_gate_yaguramon_wide"}
 
 # Integration fit applied to the imported model only (graybox and collision unaffected unless noted).
 # Every entry is a documented deviation (docs/courtyard/DEVIATIONS.md).
@@ -231,6 +235,19 @@ MODEL_FIT = {
     # -> 5.0 x 5 x 5.0 (Bill 5 x 5 x 5). The trunk colliders follow (TREE_TRUNK). DEVIATIONS.md #26.
     "tree_pine_kuromatsu": dict(scale_xyz=(1, 1, 1.3)),
     "tree_maple_momiji": dict(scale_xyz=(1.237, 1, 1.238)),
+    # Batch 4 final (DEVIATIONS.md #29). BJORN's pond stones are low (main 0.226 m, b 0.284 m tall,
+    # 0.44-0.49 m deep; Bill 2 x 0.5 x 0.8). Bill's stones sit on an ellipse inside the pond
+    # rectangle, i.e. over the water (surface y -0.30): sunk 0.32 m so every stone stands in the
+    # water, with per-file Y scale to the same ~0.45 m total height (top ~0.13 m above the bank) and
+    # Z x1.4 for depth. b: Kirk's (1, 1.6, 1.4); main needs 2.0 in Y for the same height.
+    "pond_edge_stones_2m": dict(offset=(0, -0.32, 0), scale_xyz=(1, 2.0, 1.4)),
+    "pond_edge_stones_2m_b": dict(offset=(0, -0.32, 0), scale_xyz=(1, 1.6, 1.4)),
+    # Shrubs: node Y x1.2 (1.08 -> 1.30 m; Bill 1.6 x 1.0 x 1.6, BJORN's suggestion). The main file
+    # has a brown stem cone under the foliage: sunk 0.08 m. DEVIATIONS.md #30.
+    "shrub_azalea": dict(offset=(0, -0.08, 0), scale_xyz=(1, 1.2, 1)),
+    "shrub_azalea_b": dict(scale_xyz=(1, 1.2, 1)),
+    # rock_medium (BJORN's low boulder, flat filled underside): sunk 0.03 m. DEVIATIONS.md #32.
+    "rock_medium": dict(offset=(0, -0.03, 0)),
 }
 
 # Render cost settings for the imported models (CourtyardProp exports). Every BJORN GLB is
@@ -247,6 +264,9 @@ MODEL_RENDER = {
     # distance again (no pop-out at the far corners).
     # Small rock clusters (batch 4): 1k-triangle decoration, culled beyond 45 m (+5 m hysteresis).
     "rock_small_cluster": dict(vis_end=45.0, vis_margin=5.0),
+    # Shrubs (batch 4 final): 2k-triangle decoration; Bill (agent3_handoff 9) fades shrubs and small
+    # rocks beyond ~45 m.
+    "shrub_azalea": dict(vis_end=45.0, vis_margin=5.0),
 }
 
 # Hand-made LODs from BJORN's LOD pack (Oct 30, 9:35 PM): per blueprint asset, the MANIFEST variant,
@@ -256,10 +276,14 @@ MODEL_RENDER = {
 # the 80 m compound and the third-person camera (4.2 m arm): LOD0 covers the combat area around the
 # player; lod1 the middle distance; lod2 the far side of the compound and the long views.
 MODEL_LODS = {
-    "wall_segment_4m": [("lod1", 20.0, False), ("lod2", 45.0, False)],
+    # LOD rework (Oct 30, 10:45 PM): wall/barracks/turret lod1 and the tree lod3k reference LOD0's
+    # texture files (glTF URIs, no embedded images), so share=True; lod2 keeps its own 256 px textures.
+    "wall_segment_4m": [("lod1", 20.0, True), ("lod2", 45.0, False)],
     "corner_turret": [("lod1", 30.0, True), ("lod2", 60.0, False)],
-    "barracks_nagaya": [("lod1", 30.0, False), ("lod2", 55.0, False)],
-    "storehouse_kura": [("lod1", 25.0, False), ("lod2", 50.0, False)],
+    "barracks_nagaya": [("lod1", 30.0, True), ("lod2", 55.0, False)],
+    # Kura: BJORN's seam-preserving lod1 is 5,446 tris (91% of LOD0), so it is skipped: LOD0 -> lod2
+    # directly, at 35 m (was lod1 25 m / lod2 50 m); kura lod1 is no longer in the repo.
+    "storehouse_kura": [("lod2", 35.0, False)],
     "tree_pine_kuromatsu": [("lod3k", 25.0, True)],
     "tree_sakura": [("lod3k", 25.0, True)],
     "tree_maple_momiji": [("lod3k", 25.0, True)],
@@ -281,14 +305,43 @@ VARIANTS = {
         None: dict(scale=0.9, collider=((0.0, 0.217, 0.0), (0.597, 0.435, 0.575))),
         "b": dict(scale=0.9, collider=((-0.009, 0.248, 0.013), (0.504, 0.496, 0.495))),
     },
+    # Batch 4 final: rock_medium is BJORN's 1.5 x 1.0 x 1.2 m boulder (exactly Bill's size). One box
+    # inside the model's bounds (x +-0.72, z +-0.55: the boulder's bulk at 30-60% of its height),
+    # from the sunk base (-0.03) to 0.95 (the rounded crown reaches 0.97).
+    "rock_medium": {None: dict(scale=1.0, collider=((0.0, 0.46, 0.0), (1.44, 0.98, 1.10)))},
+    # Second files without a collider of their own (pond stones: arena colliders; shrubs: none).
+    "pond_edge_stones_2m": {None: {}, "b": {}},
+    "shrub_azalea": {None: {}, "b": {}},
 }
 # Bill's rocks, alternating main / b (every second instance in blueprint order).
 INSTANCE_VARIANT = {"ROCKL2": "b", "ROCKL4": "b",
-                    "ROCKS2": "b", "ROCKS4": "b", "ROCKS6": "b", "ROCKS8": "b", "ROCKS10": "b"}
+                    "ROCKS2": "b", "ROCKS4": "b", "ROCKS6": "b", "ROCKS8": "b", "ROCKS10": "b",
+                    # Batch 4 final: pond stones and shrubs alternate the same way.
+                    "PSTONE2": "b", "PSTONE4": "b", "PSTONE6": "b",
+                    "SHRUB2": "b", "SHRUB4": "b", "SHRUB6": "b", "SHRUB8": "b", "SHRUB10": "b", "SHRUB12": "b"}
 # Size-check tolerance (% per axis, min..max) where +-10% does not fit; checked by sync_assets.py and
 # check_courtyard.gd (size_tolerance_pct export). Rocks are natural shapes: only "no more than 10%
 # (clusters: 25%) larger than Bill's box" matters for the layout. DEVIATIONS.md #28.
-SIZE_TOL = {"rock_formation_large": (-25.0, 10.0), "rock_small_cluster": (-40.0, 25.0)}
+SIZE_TOL = {"rock_formation_large": (-25.0, 10.0), "rock_small_cluster": (-40.0, 25.0),
+            # Batch 4 final: pond stones are shallower than Bill's 0.8 m even at Z x1.4 (0.62 / 0.69 m);
+            # shrubs are 30% taller than Bill's 1.0 m at BJORN's Y x1.2. DEVIATIONS.md #29, #30.
+            "pond_edge_stones_2m": (-25.0, 10.0), "shrub_azalea": (-10.0, 31.0)}
+
+# Placement overrides (x, z, yaw) where Bill's position makes a delivered model clip a bridge.
+# Found with tools/courtyard/pond_fit.py. DEVIATIONS.md #29.
+PLACE_OVERRIDE = {
+    "PSTONE3": (28.40, 4.7, 162.0),    # Bill x 28.12: 0.03 m into the slab bridge's east side; now
+                                       # 0.25 m from the slab, 0.34 m from the arch bridge
+    "PSTONE4": (24.30, 1.29, 90.0),    # Bill (24.69, yaw 106): 0.47 m into the slab bridge (its west
+                                       # edge and rail); now along the west bank, 0.14 m clear
+    "PSTONE5": (24.30, -1.29, 90.0),   # Bill (24.69, yaw 74): 0.35 m into the slab bridge; mirrored
+    "PSTONE6": (28.40, -4.7, 18.0),    # mirror of PSTONE3 (Bill: 0.01 m into the slab)
+}
+# Pond stones: one box collider each in the arena (Collision/PondStones), fitted to the model at its
+# node scale: (half length x, bottom y, top y, half depth z) per file. Raw sizes: main 2.000 x 0.226
+# x 0.443, b 2.000 x 0.284 x 0.490 (BJORN's HANDOFF batch 4).
+POND_STONE_BOX = {None: (1.0, -0.32, -0.32 + 0.226 * 2.0, 0.2215 * 1.4),
+                  "b": (1.0, -0.32, -0.32 + 0.284 * 1.6, 0.245 * 1.4)}
 
 # Authored-size overrides used by the 10% checks (sync_assets.py, check_courtyard.gd) where the
 # delivered asset legitimately differs from layout_data.py. Documented in DEVIATIONS.md.
@@ -468,7 +521,11 @@ SUN_FROM_AZIMUTH_DEG = 225.0  # compass bearing the light comes FROM (0 = north/
 # BJORN's gate is hollow inside (an open room |x| < 5.6 behind the doors, visible from the courtyard),
 # so its fillers run from the wall end to just inside the pier wall (inner face 5.6-6.0 m) and are
 # shortened by scaling the 4 m module along its length. Turrets are closed shells: full modules.
-FILLER_INNER_EDGE = {"main_gate_yaguramon": 5.8}
+# Batch 4 final, wide gate: its side walls are a battered shell (outer face x 7.09 at the ground,
+# 6.17 at the wall top 4.74, hollow inside), still 0.9-1.8 m short of the wall run ends at x +-8, so
+# both gate fillers stay, shortened to end 0.17 m inside the outer face at the wall top
+# (8 -> 6.0 m: 2.0 m long, was 2.2 m). DEVIATIONS.md #31.
+FILLER_INNER_EDGE = {"main_gate_yaguramon": 6.0}
 
 
 def wall_fillers(L, pitch=4.0):
@@ -684,7 +741,9 @@ def courtyard_arena(L):
     # running 0.1 m into the turret / gate boxes at its ends so no gap opens at a seam.
     WALL_H, WALL_T = 4.74, 1.5            # wall_segment_4m: y 0..4.74, base z -0.75..0.74
     TUR_HX, TUR_HZ, TUR_H = 3.74, 3.73, 10.72
-    GATE_HX, GATE_Z0, GATE_Z1, GATE_H = 6.76, -3.08, 3.32, 10.91   # local; placed at yaw 180
+    # Batch 4 final: main_gate_yaguramon_wide ground footprint x -7.09..7.07, z -3.82..3.84, height
+    # 10.43 (was 6.76, -3.08, 3.32, 10.91 for the 14.67 m gate). DEVIATIONS.md #31.
+    GATE_HX, GATE_Z0, GATE_Z1, GATE_H = 7.08, -3.82, 3.84, 10.43   # local; placed at yaw 180
     n_x = 40 - TUR_HX + 0.1               # N run: turret face to turret face
     col("WallRuns", "N", (0, WALL_H / 2, -46), (2 * n_x, WALL_H, WALL_T))
     ew_z0, ew_z1 = -46 + TUR_HZ - 0.1, 34 - TUR_HZ + 0.1   # E/W runs: N turret face to S turret face
@@ -695,7 +754,8 @@ def courtyard_arena(L):
     col("WallRuns", "SE", ((s_x0 + s_x1) / 2, WALL_H / 2, 34), (s_x1 - s_x0, WALL_H, WALL_T))
     for nm, x, z in (("NW", -40, -46), ("NE", 40, -46), ("SW", -40, 34), ("SE", 40, 34)):
         col("Turrets", nm, (x, TUR_H / 2, z), (2 * TUR_HX, TUR_H, 2 * TUR_HZ))
-    # Gate at yaw 180: local +Z is world -Z, so the courtyard face is at z = 34 - 3.32 = 30.68.
+    # Gate at yaw 180: local +Z (BJORN's door side) is world -Z, so the courtyard face is at
+    # z = 34 - 3.84 = 30.16. Doors closed: the box spans the whole gate.
     col("Gate", "Gate", (0, GATE_H / 2, 34 - (GATE_Z0 + GATE_Z1) / 2), (2 * GATE_HX, GATE_H, GATE_Z1 - GATE_Z0))
     # main_hall_goten at yaw 0: ground x +-11.20, z -5.78..6.00, height 9.42.
     col("Buildings", "Hall", (0, 9.42 / 2, -39 + (-5.78 + 6.00) / 2), (22.4, 9.42, 11.78))
@@ -719,6 +779,16 @@ def courtyard_arena(L):
     col("Bridges", "SlabDeck", (26, -0.15, 0), (2.0, 0.3, 11))
     col("Bridges", "SlabRailW", (24.925, 0.45, 0), (0.15, 0.9, 10))
     col("Bridges", "SlabRailE", (27.075, 0.45, 0), (0.15, 0.9, 10))
+    # Pond stones (batch 4 final; Bill: no collision, the pond fence blocks): one box per stone,
+    # fitted to the model (POND_STONE_BOX), at its PLACE_OVERRIDE position. DEVIATIONS.md #29.
+    if os.path.isfile(os.path.join(ROOT, resolve_model_path("pond_edge_stones_2m")[len("res://"):])):
+        for (oid, asset, x, y, z, yaw, *_r) in L.objs:
+            if asset != "pond_edge_stones_2m":
+                continue
+            x, z, yaw = PLACE_OVERRIDE.get(oid, (x, z, yaw))
+            v = INSTANCE_VARIANT.get(oid) if resolve_variant_path(asset, INSTANCE_VARIANT.get(oid) or "-") else None
+            hx, y0, y1, hz = POND_STONE_BOX[v]
+            col("PondStones", oid, (x, (y0 + y1) / 2, z), (2 * hx, y1 - y0, 2 * hz), rot=("y", yaw))
 
     # Props with their own colliders (lanterns, trees, rocks, shrubs) stay inside nav_source.
     s.node("Props", "Node3D", "Collision")
@@ -776,7 +846,8 @@ def courtyard_arena(L):
         grp = vis_groups.get(asset, "Buildings")
         if grp not in made:
             s.node(grp, "Node3D", "Visual"); made.add(grp)
-        s.node(oid, None, "Visual/" + grp, [("transform", xform((x, y, z), ("y", yaw)))], instance=prefab_path(asset))
+        x, z, yaw = PLACE_OVERRIDE.get(oid, (x, z, yaw))
+        s.node(oid, None, "Visual/" + grp, [("transform", xform((x, y, z), ("y", yaw)))], instance=instance_prefab(oid, asset))
     # Visual-only filler wall modules hidden inside the turret / gate bodies (DEVIATIONS.md #13):
     # BJORN's turret has a battered base and the gate body is narrower than Bill's footprint, so
     # the wall runs ending at the footprint edge would leave see-through gaps. Collision unchanged.

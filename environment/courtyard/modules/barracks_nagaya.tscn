@@ -20,7 +20,7 @@ model_path = "res://environment/courtyard/assets/Courtyard/barracks_nagaya/barra
 authored_size = Vector3(24, 6, 6)
 model_lod_paths = PackedStringArray("res://environment/courtyard/assets/Courtyard/barracks_nagaya/barracks_nagaya_lod1.glb", "res://environment/courtyard/assets/Courtyard/barracks_nagaya/barracks_nagaya_lod2.glb")
 model_lod_distances = PackedFloat32Array(30, 55)
-model_lod_share_materials = PackedInt32Array(0, 0)
+model_lod_share_materials = PackedInt32Array(1, 0)
 model_lod_fade = 3
 
 [node name="Graybox" type="Node3D" parent="."]

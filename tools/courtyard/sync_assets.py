@@ -125,7 +125,9 @@ def main():
             (mx, my, mz), ntris = measured_size(glb)
             # Node scale the integration applies (G.VARIANTS uniform scale, G.MODEL_FIT scale_xyz).
             k = G.VARIANTS.get(asset, {}).get(variant, {}).get("scale", 1.0)
-            kx, ky, kz = G.MODEL_FIT.get(asset, {}).get("scale_xyz", (1, 1, 1))
+            # Variant prefabs may carry their own fit (G.MODEL_FIT["<asset>_<variant>"]).
+            fit = G.MODEL_FIT.get("%s_%s" % (asset, variant) if variant else asset, G.MODEL_FIT.get(asset, {}))
+            kx, ky, kz = fit.get("scale_xyz", (1, 1, 1))
             mx, my, mz = mx * k * kx, my * k * ky, mz * k * kz
             if (k, kx, ky, kz) != (1.0, 1, 1, 1):
                 print("  (at the integration's node scale %g x (%g, %g, %g))" % (k, kx, ky, kz))
