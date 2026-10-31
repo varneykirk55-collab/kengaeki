@@ -382,3 +382,90 @@ on the ground with no floating or wall/turret clipping (01, 02, 04, 06 + close-u
 sakura and maples); no path strip over the pond; slab supports visible under the deck and the deck
 meets the path ends flush (03). The slab stone reads near-white in sunlight, paler than the wall
 stone. Maple trunks look slim; the pine root flare extends past its collider.
+
+## 13. BJORN LOD pack, slab albedo v2, tree scales and batch 4 rocks (Oct 30, 2026, ~10:30 PM EDT)
+Integrated from `/workspace/kengeki_assets/library/Courtyard/` (read only; HANDOFF "LOD pack + slab
+albedo" and batch 4 notes). Not integrated: `rock_medium` (BJORN is regenerating it; stays graybox)
+and `pond_edge_stones_2m`. Still to come from BJORN: rock_medium, pond stones, azalea, 16 m gate.
+
+**LODs (DEVIATIONS #27).** Tree `_lod3k` (all three species), `wall_segment_4m_lod1/2`,
+`corner_turret_lod1/2`, `barracks_nagaya_lod1/2`, `storehouse_kura_lod1/2`, wired as distance LODs
+with `visibility_range_begin/end` and a FADE_SELF dithered crossfade (margin = fade width):
+
+| Asset | LOD0 → lod1 | lod1 → lod2 | Fade | Tris LOD0 / lod1 / lod2 | lod1 textures |
+|---|---|---|---|---|---|
+| wall_segment_4m | 20 m | 45 m | 2 m | 13,134 / 5,000 / 404 | own (rebaked) |
+| corner_turret | 30 m | 60 m | 3 m | 12,000 / 5,400 / 1,997 | **LOD0's** |
+| barracks_nagaya | 30 m | 55 m | 3 m | 12,000 / 5,379 / 1,978 | own |
+| storehouse_kura | 25 m | 50 m | 3 m | 6,000 / 2,700 / 1,000 | own |
+| trees (lod3k) | 25 m | — | 3 m | 12,000 / 10,000 / 11,986 → 4,000 / 3,986 / 3,491 | **LOD0's** |
+
+Shared-material LODs are imported with `gltf/embedded_image_handling=0` (`vram_textures.py`), so
+only the GLB is committed. Mixed wall LODs tile: all three span exactly x −2.000…2.000 and the same
+height; joint outline steps LOD0|LOD1 and LOD0|LOD2 are no worse than LOD0|LOD0
+(`python3 tools/courtyard/wall_lod_seams.py`); no gap visible at the LOD0/LOD1 boundary in
+screenshot 08.
+
+**Slab albedo v2.** `bridge_stone_slab_deck2m.glb` re-synced (mean albedo 150/150/139 → 112/108/95);
+mesh, fit and the invisible 0.9 m rail colliders unchanged (Bill's design). `_v1` backups not copied.
+
+**Tree scales (DEVIATIONS #26).** Pine node scale (1, 1, 1.3), maple (1.237, 1, 1.238). PINE3 / PINE6
+yaws re-fitted to 92 / 304 (0.10 / 0.05 m clearance to WE11 / TNE eaves).
+
+**Rocks (DEVIATIONS #28).** `rock_formation_large` (+ `_b` at 0.9) and `rock_small_cluster`
+(+ `_b`, both at 0.9), alternating over Bill's instances, one fitted box collider each. Nav cull
+above 1.8 m unchanged.
+
+**Checks (headless, not visual/gameplay verification).** `check_courtyard.gd` PASS, 264 checks, 0
+FAIL (navmesh 426 polygons / 378 vertices, 0 above 2 m): LOD presence/ranges/fade/AABB per level,
+shared-material LODs use LOD0's material with no texture of their own, rock colliders, small-rock
+walk-around (longest path round one 5.6 m), combat area 0 hits, spawns/routes/camera clearance
+PASS. Gameplay tests 109 passed / 8 failed (same 8 pre-existing character/animation/sheathe
+failures as the base).
+
+**Budget** (`python3 tools/courtyard/asset_budget.py --files`):
+
+| | Before (after batch 3) | After LOD pack + rocks |
+|---|---|---|
+| Scene triangles at LOD0 (instanced) | 1,407,382 (160,120 unique) | 1,433,382 (170,120 unique LOD0) |
+| Triangles drawn from the combat centre (LOD selection, no frustum culling) | — | 443,062 |
+| Texture VRAM (BJORN assets, compressed) | 42.64 MB | 54.53 MB (+4.9 LOD textures, +7.0 rocks) |
+| Git cost (BJORN assets, GLB + extracted textures) | 67.98 MB | 100.57 MB |
+| Godot monitors, video / texture memory | 324.8 / 177.2 MB | 338.9 / 188.5 MB |
+
+Git cost per new file (GLB + its extracted textures): wall lod1 3.73 / lod2 0.91; turret lod1 2.77
+(GLB only, shared) / lod2 1.24; barracks lod1 4.05 / lod2 1.25; kura lod1 3.30 / lod2 1.08; pine
+lod3k 1.16, sakura lod3k 1.03, maple lod3k 0.95 (GLB only, shared); rock_formation_large 3.46,
+`_b` 5.15; rock_small_cluster 1.43, `_b` 1.35; slab v2 5.50 MB.
+
+**Render cost** (windowed llvmpipe, primitives include shadow passes):
+
+| View | Draw calls before → after | Primitives before → after |
+|---|---|---|
+| 01 overview from gate | 89 → 86 | 1,057,958 → 360,332 |
+| 02 combat centre, eye height | 58 → 56 | 859,532 → 284,929 |
+| 03 pond + arch bridge | 71 → 76 | 700,754 → 464,567 |
+| 04 wall / turret seam | 25 → 26 | 551,624 → 545,356 |
+| 05 gate interior | 15 → 18 | 306,138 → 331,138 |
+| 06 keep backdrop | 31 → 33 | 767,760 → 404,668 |
+| **Total** | **289 → 295** | **4,243,766 → 2,390,990 (−44%)** |
+
+LOD views, LOD pack vs LOD0 at every distance (`render_views.gd --no-lods`):
+
+| View | Draw calls | Primitives | LOD0 only: draw calls | LOD0 only: primitives |
+|---|---|---|---|---|
+| 07 LOD overview (30, 22, 46 → −8, 0, −28) | 118 | 566,876 | 127 | 2,623,370 |
+| 08 wall LOD seam (34.5, 1.8, 27 → 38.6, 3.2, −30) | 101 | 720,964 | 103 | 1,864,272 |
+| 09 long-range (85, 55, 95 → 0, 0, −8) | 83 | 234,573 | 95 | 1,572,000 |
+
+Draw calls rose slightly in 03/05/06 (the 14 rocks are now textured models instead of graybox, and
+instances inside a crossfade band draw two levels); primitives fell where walls and
+trees are beyond 20–25 m. Views 04 and 05 are close-ups, so they stay mostly at LOD0.
+
+**Screenshots** replaced (`docs/courtyard/screenshots/`, `/workspace/kengeki_shots/`); the previous
+set is in `/workspace/kengeki_shots/before_lodpack/`. New: `07_lod_overview`, `09_lod_far` and their
+`_tinted` versions (`--tint-lods`: LOD0 green, lod1 yellow, lod2 red) to show the LOD transitions,
+and `08_wall_lod_seam` (LOD0/LOD1 wall boundary). Seen in the screenshots: LOD bands as expected
+in the tinted views, no gap at the wall LOD boundary, slab less white, rocks seated on the ground
+(the grey spheres are graybox `rock_medium`). Crossfade quality and popping need a windowed,
+moving-camera look; a headless/llvmpipe still frame can't show them.
