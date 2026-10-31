@@ -551,3 +551,22 @@ rock_medium sits on the ground; the gate meets the walls with no gap from inside
 LOD bands in the tinted views as expected (kura shows lod2 in the lod1 colour, since it has only one
 lower level); no gap at the wall LOD boundary (08). Crossfades and popping need a windowed,
 moving-camera look.
+
+## 15. Lantern cleanup and gate-side seal (Oct 30, 2026, ~11:15 PM EDT)
+
+- **Unused 25k lantern removed** (Kirk, 10:58 PM EDT): `stone_lantern_toro.glb` and its 3 extracted
+  2048² PNGs (+ `.import` files) are deleted from the branch; they remain in git history. The arena
+  uses the lod8k file (DEVIATIONS #14). `ref_check.gd`'s allowlist is now empty. Git cost: the
+  referenced-asset total stays **91.23 MB** (the budget never counted the unused file); the tracked
+  `environment/courtyard/assets` directory drops from 110.15 MB to **91.35 MB** (−18.80 MB, incl.
+  `.import`/docs).
+- **Gate kept as is** (Bill): doors face the courtyard, not flipped.
+- **Gate-side seal** (Bill: fillers close the wall line as blocking colliders in nav_source): the S
+  wall-run boxes already reach 0.1 m into the gate box over the full wall height and thickness, so
+  the filler volumes are fully inside nav_source colliders and no filler boxes were added.
+  New `_gate_seal_checks` in `check_courtyard.gd`: filler volumes inside nav_source colliders,
+  player-capsule sweeps blocked on both sides, no navmesh through the seam. The check found a small
+  unreachable navmesh island inside the closed gate box (the bake box clips its roof); a nav-only slab
+  `GateNavSlab` inside the gate box removes it (DEVIATIONS #31). Deviations #29–#33 approved by Bill.
+- **Checks (headless):** `check_courtyard.gd` PASS, 325 checks, 0 FAIL (navmesh 439 polygons / 399
+  vertices); `ref_check.gd` PASS (0 broken, 0 unreferenced); gameplay tests 109 passed / 8 failed (the same 8 pre-existing failures).

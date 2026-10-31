@@ -609,3 +609,91 @@ func _batch4_final_checks(arena: Node, map: RID, space: PhysicsDirectSpaceState3
 		if f:
 			var inner := absf(f.global_position.x) - 2.0 * absf(f.scale.x)
 			check(absf(inner - 6.0) < 0.02 and f.global_position.z == 34.0, "%s: gate filler from the wall end (x 8) to x %.2f (inside the gate shell)" % [nm, inner])
+	_gate_seal_checks(arena, map, space)
+
+
+## Bill (Oct 30, 10:58 PM EDT): the gate-side fillers must close the wall line with no gaps, as
+## blocking colliders in nav_source. The fillers are visual modules; their footprint is covered by
+## the S wall-run boxes (which run 0.1 m into the gate box) and the closed-gate box, all children of
+## Collision (group nav_source). Checked here: every point of each filler's volume is inside a
+## nav_source collider, a player capsule can't pass between the gate and the wall on either side,
+## and the navmesh does not reach the outside.
+func _gate_seal_checks(arena: Node, map: RID, space: PhysicsDirectSpaceState3D) -> void:
+	var col_root := arena.get_node_or_null(^"Collision")
+	check(col_root != null and col_root.is_in_group("nav_source"), "gate seal: Collision root is in group nav_source")
+	for nm in ["WS07_FillB", "WS08_FillA"]:
+		var f := arena.find_child(nm, true, false) as Node3D
+		if f == null:
+			check(false, "gate seal: filler %s present" % nm)
+			continue
+		var cx := f.global_position.x
+		var half := 2.0 * absf(f.scale.x)
+		var miss := 0
+		var not_nav := 0
+		var total := 0
+		for ix in 11:
+			var x := cx - half + 0.02 + (2.0 * half - 0.04) * ix / 10.0
+			for iz in 5:
+				var z := 34.0 - 0.7 + 1.4 * iz / 4.0
+				for iy in 6:
+					var y := 0.05 + 4.6 * iy / 5.0
+					var pq := PhysicsPointQueryParameters3D.new()
+					pq.position = Vector3(x, y, z)
+					pq.collision_mask = 1
+					var hits := space.intersect_point(pq, 4)
+					total += 1
+					if hits.is_empty():
+						miss += 1
+					else:
+						var in_nav := false
+						for h in hits:
+							var c: Object = h.collider
+							var p: Node = c as Node
+							while p != null:
+								if p.is_in_group("nav_source"):
+									in_nav = true
+									break
+								p = p.get_parent()
+						if not in_nav:
+							not_nav += 1
+		check(miss == 0 and not_nav == 0, "gate seal: %s volume (x %.2f..%.2f, z 33.3..34.7, y 0.05..4.65) fully inside nav_source colliders (%d/%d points, %d outside nav_source)" % [nm, cx - half, cx + half, total - miss, total, not_nav])
+	# Player capsule (r 0.38, h 1.8, scenes/characters/player.tscn) swept from the courtyard (z 27)
+	# to outside the wall (z 41) at every x across the gate side, filler and wall end.
+	var cap := CapsuleShape3D.new()
+	cap.radius = 0.38
+	cap.height = 1.8
+	for side in [-1.0, 1.0]:
+		var passed := 0
+		var n := 0
+		var worst := 0.0
+		for i in 41:
+			var x: float = side * (5.0 + 0.1 * i)   # |x| 5.0 .. 9.0
+			for y in [0.92, 2.5, 4.0]:
+				var q := PhysicsShapeQueryParameters3D.new()
+				q.shape = cap
+				q.transform = Transform3D(Basis(), Vector3(x, y, 27.0))
+				q.motion = Vector3(0, 0, 14.0)
+				q.collision_mask = 1
+				var frac := space.cast_motion(q)
+				n += 1
+				worst = maxf(worst, 27.0 + 14.0 * frac[0])
+				if frac[0] >= 1.0:
+					passed += 1
+		check(passed == 0, "gate seal %s: player capsule blocked between gate and wall at all %d sweeps (|x| 5..9, y 0.92/2.5/4.0; furthest reach z %.2f, wall inner face 33.25)" % ["west" if side < 0 else "east", n, worst])
+		# Navmesh: the closest navmesh point to spots just outside the wall stays inside, and a path
+		# from inside to outside ends inside the wall line.
+		var leak := 0
+		var far := 0.0
+		for i in 9:
+			var x: float = side * (5.0 + 0.5 * i)
+			var cp := NavigationServer3D.map_get_closest_point(map, Vector3(x, 0, 38.5))
+			far = maxf(far, cp.z)
+			if cp.z > 33.0:
+				leak += 1
+				print("  INFO  gate seal: closest navmesh to (%.1f, 0, 38.5) is %s" % [x, cp])
+			var a := NavigationServer3D.map_get_closest_point(map, Vector3(x, 0, 27))
+			var route := NavigationServer3D.map_get_path(map, a, Vector3(x, 0, 38.5), true)
+			if route.size() > 0 and route[route.size() - 1].z > 33.0:
+				leak += 1
+				print("  INFO  gate seal: path to (%.1f, 0, 38.5) ends at %s" % [x, route[route.size() - 1]])
+		check(leak == 0, "gate seal %s: no navmesh through the gate/wall seam (closest navmesh to outside points reaches z %.2f, paths end inside)" % ["west" if side < 0 else "east", far])

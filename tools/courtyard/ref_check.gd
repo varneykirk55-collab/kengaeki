@@ -5,9 +5,8 @@ extends SceneTree
 
 var _seen := {}
 # Kept on purpose although no scene loads them (documented; not counted as a failure).
-const KNOWN_UNUSED := {
-	"res://environment/courtyard/assets/Decorations/stone_lantern_toro/stone_lantern_toro": "DEVIATIONS.md #14: first 25k lantern kept, arena uses lod8k",
-}
+# Empty: the unused 25k lantern was removed (Oct 30, 2026, DEVIATIONS.md #14).
+const KNOWN_UNUSED := {}
 var _broken: Array = []
 
 func _files(dir: String, out: Array) -> void:

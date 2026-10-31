@@ -54,7 +54,8 @@ All 16 of Bill's inventory items, plus his two reuse items, are placed with BJOR
 remain. Triangles are per mesh (LOD0 / LODs). Git is the committed GLB plus its extracted textures, in MB
 (`python3 tools/courtyard/asset_budget.py --files`). Deviation numbers refer to `docs/courtyard/DEVIATIONS.md`.
 The copy ledger above is append-only: where a file appears twice the later row is current, and the rows for
-`main_gate_yaguramon.glb` and `storehouse_kura_lod1.glb` are history (both removed in `5af7d00`).
+`main_gate_yaguramon.glb` and `storehouse_kura_lod1.glb` (removed in `5af7d00`) and the 25k `stone_lantern_toro.glb`
+(removed later) are history.
 
 | # | Bill's item | Placed | Instances (Bill) | File(s) in the repo | Tris LOD0 / LODs | Git (MB) | Deviations |
 |---|---|---|---|---|---|---|---|
@@ -78,5 +79,6 @@ The copy ledger above is append-only: where a file appears twice the later row i
 | – | rock_small_cluster (reuse) | Yes | 10 (10) | `rock_small_cluster.glb`, `_b.glb` | 1,000 / 1,000 | 2.78 | #28 |
 | | **Total (referenced)** | **18 / 18** | | 32 GLBs | 180,066 unique LOD0 | **91.23** | |
 
-Not in the table: the first 25k lantern (`stone_lantern_toro.glb` + 3 extracted textures, 18.80 MB in git: 9.8 MB GLB + 9.0 MB PNG) is still committed but not
-referenced by any scene (DEVIATIONS #14); `tools/courtyard/ref_check.gd` allowlists it. Removing it is Kirk's call.
+The first 25k lantern (`stone_lantern_toro.glb` + 3 extracted textures, 18.80 MB in git) was removed on Kirk's
+instruction (Oct 30, 2026, 10:58 PM EDT); its ledger row above is history. Total committed courtyard asset cost is now the
+91.23 MB in the table. It remains in git history.

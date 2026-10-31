@@ -757,6 +757,12 @@ def courtyard_arena(L):
     # Gate at yaw 180: local +Z (BJORN's door side) is world -Z, so the courtyard face is at
     # z = 34 - 3.84 = 30.16. Doors closed: the box spans the whole gate.
     col("Gate", "Gate", (0, GATE_H / 2, 34 - (GATE_Z0 + GATE_Z1) / 2), (2 * GATE_HX, GATE_H, GATE_Z1 - GATE_Z0))
+    # Nav-only slab inside the gate box (y 1.0..1.9). Recast voxelises surfaces, not volumes, and the
+    # bake box (top y 2.0) clips the gate box's roof, so the ground inside the closed gate baked as a
+    # small unreachable island (x +-6.5, z 30.75..33.5). The slab removes the headroom there; its top
+    # (1.9) is above nav_max_walk_height (1.8) and is pruned. It lies wholly inside the gate box, so
+    # physics is unchanged. DEVIATIONS.md #31.
+    col("Gate", "GateNavSlab", (0, 1.45, 34 - (GATE_Z0 + GATE_Z1) / 2), (2 * GATE_HX - 0.02, 0.9, GATE_Z1 - GATE_Z0 - 0.02))
     # main_hall_goten at yaw 0: ground x +-11.20, z -5.78..6.00, height 9.42.
     col("Buildings", "Hall", (0, 9.42 / 2, -39 + (-5.78 + 6.00) / 2), (22.4, 9.42, 11.78))
     col("Buildings", "Barracks", (-36, 3, 0), (6, 6, 24))
