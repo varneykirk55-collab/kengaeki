@@ -33,6 +33,7 @@ const CLIP_COMBO := &"Sword_Combo_OneHand"
 
 ## Ground speed (m/s at model scale 1) of the in-place clips, measured from their root motion.
 const WALK_CLIP_SPEED := 1.154
+const REFINED_WALK_CLIP_SPEED := WALK_CLIP_SPEED * 1.10
 const RUN_CLIP_SPEED := 4.153
 
 ## Swing segments of Sword_Combo_OneHand, from the right-hand speed profile of the clip:
@@ -135,8 +136,10 @@ const BLADE_BODY_CAPSULES := [
 @export var start_drawn: bool = true
 @export var equip_speed: float = 1.25
 ## Walk is a slow catwalk (1.8 m/s at this scale); gameplay walks at 4.6 m/s. The cadence is
-## capped so it does not look frantic; the remaining difference shows as slight foot slide.
+## capped in legacy mode; refined mode matches stride speed using the baked clips.
 @export var max_walk_time_scale: float = 2.2
+## Reversible: disables resources and locomotion-only refinements.
+@export var refined_locomotion: bool = true
 @export var locomotion_xfade: float = 0.18
 @export var action_xfade: float = 0.08
 @export var action_fade_in: float = 0.08
@@ -161,6 +164,9 @@ var _deflect := Vector3.ZERO  # smoothed grip turn (rotation vector, hand-bone s
 var _hip_xform: Transform3D
 
 var _speed := 0.0
+var _local_velocity := Vector3.ZERO
+var _gait_phase := 0.0
+var _gait_direction := 1.0
 var _max_speed := 4.6
 var _loco_state := &"idle"
 var _loco_phase := 0.0
@@ -218,6 +224,8 @@ func _ready() -> void:
 		if anim_player and anim_player.has_animation(clip):
 			anim_player.get_animation(clip).loop_mode = Animation.LOOP_LINEAR
 	_load_combat_clips()
+	if refined_locomotion:
+		refined_locomotion = _install_locomotion()
 	_build_tree()
 	_build_katana()
 	sword_drawn = start_drawn
@@ -263,14 +271,28 @@ func current_action_clip() -> StringName:
 	return node.animation
 
 
+func _install_locomotion() -> bool:
+	# Use a separate library; imported clips and the combat library remain intact.
+	var library := AnimationLibrary.new()
+	for clip in ["walk", "run", "jump"]:
+		var path := "res://assets/animations/locomotion/%s.res" % clip
+		var resource := load(path) as Animation if ResourceLoader.exists(path) else null
+		if resource == null or resource.length <= 0.0:
+			push_warning("KengekiCharacterVisual: locomotion clip missing or invalid at %s; using original locomotion." % path)
+			return false
+		library.add_animation(clip, resource)
+	anim_player.add_animation_library(&"locomotion", library)
+	return true
+
+
 func _build_tree() -> void:
 	if anim_player == null:
 		return
 	var bt := AnimationNodeBlendTree.new()
 	# Locomotion: Idle / Walk / Run cross-faded by a Transition, Walk and Run speed-matched.
 	bt.add_node(&"idle", _anim_node(CLIP_IDLE))
-	bt.add_node(&"walk", _anim_node(CLIP_WALK))
-	bt.add_node(&"run", _anim_node(CLIP_RUN))
+	bt.add_node(&"walk", _anim_node(&"locomotion/walk" if refined_locomotion else CLIP_WALK))
+	bt.add_node(&"run", _anim_node(&"locomotion/run" if refined_locomotion else CLIP_RUN))
 	bt.add_node(&"walk_speed", AnimationNodeTimeScale.new())
 	bt.add_node(&"run_speed", AnimationNodeTimeScale.new())
 	bt.connect_node(&"walk_speed", 0, &"walk")
@@ -282,8 +304,15 @@ func _build_tree() -> void:
 		loco.set_input_name(i, ["idle", "walk", "run"][i])
 	bt.add_node(&"loco", loco)
 	bt.connect_node(&"loco", 0, &"idle")
-	bt.connect_node(&"loco", 1, &"walk_speed")
-	bt.connect_node(&"loco", 2, &"run_speed")
+	if refined_locomotion:
+		for gait in ["walk", "run"]:
+			bt.add_node(StringName(gait + "_seek"), AnimationNodeTimeSeek.new())
+			bt.connect_node(StringName(gait + "_seek"), 0, StringName(gait + "_speed"))
+		bt.connect_node(&"loco", 1, &"walk_seek")
+		bt.connect_node(&"loco", 2, &"run_seek")
+	else:
+		bt.connect_node(&"loco", 1, &"walk_speed")
+		bt.connect_node(&"loco", 2, &"run_speed")
 	# Two seekable action slots so one action can cross-fade into the next.
 	var act := AnimationNodeTransition.new()
 	act.xfade_time = action_xfade
@@ -442,6 +471,7 @@ func get_katana() -> Katana:
 
 
 func set_locomotion(local_velocity: Vector3, max_speed: float) -> void:
+	_local_velocity = local_velocity
 	_speed = Vector2(local_velocity.x, local_velocity.z).length()
 	_max_speed = max_speed
 
@@ -455,7 +485,7 @@ func play_dodge(_local_direction: Vector3, duration: float) -> void:
 	_end_jump()
 	_dodge_left = duration
 	_dodge_time = 0.0
-	var run_len := _clip_length(CLIP_RUN)
+	var run_len := _clip_length(&"locomotion/run" if refined_locomotion else CLIP_RUN)
 	_dodge_rate = 1.7 if run_len <= 0.0 else clampf(run_len * 1.2 / maxf(duration, 0.05), 1.0, 2.5)
 
 
@@ -488,6 +518,8 @@ func play_death() -> void:
 
 func reset_pose() -> void:
 	_dead = false
+	_gait_phase = 0.0
+	_gait_direction = 1.0
 	_tilt = 0.0
 	_flinch_t = -1.0
 	_knockdown_t = -1.0
@@ -599,7 +631,7 @@ func play_jump(expected_air_time: float) -> void:
 	_jump = Jump.AIR
 	_jump_air_time = 0.0
 	_jump_expected_air = maxf(expected_air_time, 0.2)
-	_jump_clip_t = JUMP_AIR_START
+	_jump_clip_t = 0.60 if refined_locomotion else JUMP_AIR_START
 
 
 func play_land() -> void:
@@ -657,8 +689,9 @@ func _current_action(delta: float) -> String:
 	if _dodge_left > 0.0:
 		_dodge_left -= delta
 		_dodge_time += delta * _dodge_rate
-		_switch_action("dodge", CLIP_RUN)
-		_seek_action(fmod(_dodge_time, maxf(_clip_length(CLIP_RUN), 0.01)))
+		var dodge_clip := &"locomotion/run" if refined_locomotion else CLIP_RUN
+		_switch_action("dodge", dodge_clip)
+		_seek_action(fmod(_dodge_time, maxf(_clip_length(dodge_clip), 0.01)))
 		return _action_key
 	if _jump != Jump.NONE:
 		return _update_jump(delta)
@@ -694,16 +727,25 @@ func _update_jump(delta: float) -> String:
 	if _jump == Jump.AIR:
 		_jump_air_time += delta
 		var p := clampf(_jump_air_time / _jump_expected_air, 0.0, 0.97)
-		_jump_clip_t = lerpf(JUMP_AIR_START, JUMP_LAND_TIME, p)
+		if refined_locomotion:
+			# Brief launch compression, with no delay to the existing physics impulse.
+			var launch := minf(0.05, _jump_expected_air * 0.15)
+			if _jump_air_time < launch:
+				_jump_clip_t = lerpf(0.60, 0.75, smoothstep(0.0, launch, _jump_air_time))
+			else:
+				var air_p := clampf((_jump_air_time - launch) / (_jump_expected_air - launch), 0.0, 0.97)
+				_jump_clip_t = lerpf(0.75, JUMP_LAND_TIME, air_p)
+		else:
+			_jump_clip_t = lerpf(JUMP_AIR_START, JUMP_LAND_TIME, p)
 	else:
-		# Landing recovery; cut short as soon as the player moves.
-		var rate := 1.3 if _speed < 0.5 else 3.0
+		# Moving landings retain a short compression before blending back to the gait.
+		var rate := (1.8 if _speed < 0.5 else 2.2) if refined_locomotion else (1.3 if _speed < 0.5 else 3.0)
 		_jump_clip_t += delta * rate
-		if _jump_clip_t >= JUMP_SETTLED_TIME or (_speed > 0.5 and _jump_clip_t > JUMP_LAND_TIME + 0.25):
+		if _jump_clip_t >= JUMP_SETTLED_TIME or (_speed > 0.5 and _jump_clip_t > JUMP_LAND_TIME + (0.40 if refined_locomotion else 0.25)):
 			_end_jump()
 			model.position.y = 0.0
 			return ""
-	_switch_action("jump", CLIP_JUMP)
+	_switch_action("jump", &"locomotion/jump" if refined_locomotion else CLIP_JUMP)
 	_seek_action(_jump_clip_t)
 	model.position.y = -_foot_lift(_jump_clip_t) * model_scale if _jump == Jump.AIR else 0.0
 	return _action_key
@@ -744,6 +786,9 @@ func _seek_action(t: float) -> void:
 
 
 func _update_locomotion(delta: float) -> void:
+	if refined_locomotion:
+		_update_refined_locomotion(delta)
+		return
 	var state := &"idle"
 	var walk_ts := clampf(_speed / (WALK_CLIP_SPEED * model_scale), 0.6, max_walk_time_scale)
 	var run_ts := clampf(_speed / (RUN_CLIP_SPEED * model_scale), 0.7, 1.6)
@@ -816,3 +861,33 @@ func _clip_length(clip: StringName) -> float:
 	if anim_player and anim_player.has_animation(clip):
 		return anim_player.get_animation(clip).length
 	return 0.0
+
+
+func _update_refined_locomotion(delta: float) -> void:
+	# Hysteresis avoids repeatedly switching gait near the threshold.
+	var state := &"idle"
+	if _speed > (0.18 if _loco_state != &"idle" else 0.30):
+		state = &"run" if _speed > (5.0 if _loco_state == &"run" else 5.6) else &"walk"
+	if state != _loco_state:
+		_loco_state = state
+		anim_tree.set("parameters/loco/transition_request", String(state))
+	# Backpedal reuses the same skeletal cycle in reverse. Lateral-only motion still
+	# needs authored strafe clips; do not rotate the torso or katana to fake them.
+	var direction := -1.0 if _local_velocity.z > 0.15 and absf(_local_velocity.z) > absf(_local_velocity.x) else 1.0
+	_gait_direction = move_toward(_gait_direction, direction, delta * 10.0)
+	var cycle := _clip_length(&"locomotion/run" if state == &"run" else &"locomotion/walk")
+	var stride_speed := RUN_CLIP_SPEED if state == &"run" else REFINED_WALK_CLIP_SPEED
+	var rate := _speed / (stride_speed * model_scale)
+	var previous := _gait_phase
+	if state != &"idle" and cycle > 0.0:
+		_gait_phase = fposmod(_gait_phase + delta * rate * _gait_direction / cycle, 1.0)
+	# Both clips share a contact phase; run's left plant is ~0.12 cycles later.
+	anim_tree.set("parameters/walk_speed/scale", 0.0)
+	anim_tree.set("parameters/run_speed/scale", 0.0)
+	anim_tree.set("parameters/walk_seek/seek_request", _gait_phase * _clip_length(&"locomotion/walk"))
+	anim_tree.set("parameters/run_seek/seek_request", fposmod(_gait_phase + 0.12, 1.0) * _clip_length(&"locomotion/run"))
+	if state != &"idle" and _action_weight < 0.5 and not _dead:
+		var old_contact := int(floor(fposmod(previous - 0.20, 1.0) * 2.0))
+		var new_contact := int(floor(fposmod(_gait_phase - 0.20, 1.0) * 2.0))
+		if old_contact != new_contact:
+			footstep.emit()
